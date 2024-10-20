@@ -1,5 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { TextField, Button, Box, Typography } from '@mui/material';
+import AppRegistrationIcon from '@mui/icons-material/AppRegistration';
+import LoginIcon from '@mui/icons-material/Login';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import { useNavigate, Link } from 'react-router-dom';
 
@@ -12,7 +14,7 @@ const textFieldCommonProps = {
 const buttonProps = {
   fullWidth: true,
   variant: "contained",
-  sx: { mt: 3, mb: 2 },
+  sx: { mt: 2, mb: 2 },
 };
 
 function Signup() {
@@ -52,7 +54,8 @@ function Signup() {
   }, [formData]);
 
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1, maxWidth: 400, margin: 'auto' }}>
+    <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: 400, margin: 'auto', padding: 2 }}>
+      <Typography variant="h4" gutterBottom>Sign Up</Typography>
       {['email', 'password', 'confirmPassword'].map((field) => (
         <TextField
           key={field}
@@ -76,15 +79,17 @@ function Signup() {
         {...buttonProps}
         type="submit"
         disabled={isSubmitDisabled}
+        endIcon={<AppRegistrationIcon />}
       >
         Sign Up
       </Button>
       <Box sx={{ display: 'flex', justifyContent: 'center' }}>
         <Button
+          {...buttonProps}
           component={Link}
           to="/"
           variant="outlined"
-          sx={{ mt: 1 }}
+          endIcon={<LoginIcon />}
         >
           Already have an account? Log in
         </Button>

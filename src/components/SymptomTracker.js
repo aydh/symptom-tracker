@@ -1,9 +1,11 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { TextField, Select, MenuItem, Box, Typography, Switch, FormControlLabel } from '@mui/material';
+import { TextField, Select, MenuItem, Box, Typography, Switch, FormControlLabel, FormControl, InputLabel } from '@mui/material';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
+import enAU from 'date-fns/locale/en-AU';
 import { db } from '../firebase';
 import { collection, addDoc, doc, updateDoc, query, where, getDocs } from 'firebase/firestore';
+import { fetchDynamicFields } from '../utils/dynamicFieldsUtil';
 
 function SymptomTracker({ user }) {
   const [docId, setDocId] = useState(null);
@@ -12,26 +14,18 @@ function SymptomTracker({ user }) {
   const [dynamicValues, setDynamicValues] = useState({});
 
   // Fetch dynamic fields from Firestore
-  const fetchDynamicFields = useCallback(async () => {
-    const fieldsSnapshot = await getDocs(collection(db, 'dynamicFields'));
-    const fields = fieldsSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-    
-    // Sort fields based on the order attribute
-    const sortedFields = fields.sort((a, b) => {
-      const orderA = typeof a.order === 'number' ? a.order : parseInt(a.order) || 0;
-      const orderB = typeof b.order === 'number' ? b.order : parseInt(b.order) || 0;
-      return orderA - orderB;
-    });
-    
-    setDynamicFields(sortedFields);
+  const getDynamicFields = useCallback(async () => {
+    try {
+      const fields = await fetchDynamicFields();
+      setDynamicFields(fields);
+    } catch (err) {
+      console.error('Error fetching dynamic fields:', err);
+    }
   }, []);
 
   useEffect(() => {
-    fetchDynamicFields();
-  }, [fetchDynamicFields]);
+    getDynamicFields();
+  }, [getDynamicFields]);
 
   const getEntryForDate = useCallback(async (date) => {
     if (!user || !user.uid) return;
@@ -133,35 +127,43 @@ function SymptomTracker({ user }) {
   }, [dynamicFields]);
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxWidth: 300, margin: 'auto' }}>
+    <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={enAU}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxWidth: 400, margin: 'auto', padding: 2 }}>
+        <Typography variant="h4" gutterBottom>Track</Typography>
         <Box>
-          <Typography variant="subtitle1">Date</Typography>
           <DatePicker
             label="Select Date"
             value={selectedDate}
             onChange={handleDateChange}
-            renderInput={(params) => <TextField {...params} />}
-            maxDate={new Date()} // This prevents selecting future dates in the calendar
+            maxDate={new Date()}
+            sx={{ width: '100%' }}
+            textField={(params) => <TextField {...params} fullWidth />}
           />
         </Box>
         {sortedDynamicFields.map((field) => (
           <Box key={field.id}>
-            <Typography variant="subtitle1">{field.title}</Typography>
             {field.type === 'select' ? (
-              <Select
-                value={dynamicValues[field.title] || ''}
-                onChange={(e) => handleDynamicFieldChange(field.title, e.target.value)}
-                fullWidth
-              >
-                <MenuItem value="" disabled>{`Select ${field.title.toLowerCase()}`}</MenuItem>
-                {field.values.map(value => (
-                  <MenuItem key={value} value={value}>{value}</MenuItem>
-                ))}
-              </Select>
+              <FormControl fullWidth>
+                <InputLabel id={`${field.id}-label`}>{field.label}</InputLabel>
+                <Select
+                  id={field.id}
+                  value={dynamicValues[field.title] || ''}
+                  labelId={`${field.id}-label`}
+                  label={field.label}
+                  onChange={(e) => handleDynamicFieldChange(field.title, e.target.value)}
+                  fullWidth
+                >
+                  <MenuItem value="" disabled>{`${field.label}`}</MenuItem>
+                  {field.values.map(value => (
+                    <MenuItem key={value} value={value}>{value}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             ) : field.type === 'text' ? (
               <TextField
+                id={field.id}
                 value={dynamicValues[field.title] || ''}
+                label={field.label}
                 onChange={(e) => handleDynamicFieldChange(field.title, e.target.value)}
                 fullWidth
                 multiline={field.multiline}
@@ -169,6 +171,7 @@ function SymptomTracker({ user }) {
               />
             ) : field.type === 'boolean' ? (
               <FormControlLabel
+                id={field.id}
                 control={
                   <Switch
                     checked={dynamicValues[field.title] || false}
@@ -176,7 +179,7 @@ function SymptomTracker({ user }) {
                     color="primary"
                   />
                 }
-                label={field.title}
+                label={field.label}
               />
             ) : null}
           </Box>

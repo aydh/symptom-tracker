@@ -1,5 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { TextField, Button, Box, Typography } from '@mui/material';
+import LoginIcon from '@mui/icons-material/Login';
+import AppRegistrationIcon from '@mui/icons-material/AppRegistration';
 import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 import { useNavigate, Link } from 'react-router-dom';
 
@@ -7,6 +9,12 @@ const textFieldCommonProps = {
   margin: "normal",
   required: true,
   fullWidth: true,
+};
+
+const buttonProps = {
+  fullWidth: true,
+  variant: "contained",
+  sx: { mt: 2, mb: 2 },
 };
 
 function Login() {
@@ -35,7 +43,8 @@ function Login() {
   }, [credentials.email, credentials.password]);
 
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1, maxWidth: 400, margin: 'auto' }}>
+    <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: 400, margin: 'auto', padding: 2 }}>
+      <Typography variant="h4" gutterBottom>Login</Typography>
       <TextField
         {...textFieldCommonProps}
         id="email"
@@ -62,20 +71,20 @@ function Login() {
         </Typography>
       )}
       <Button
+        {...buttonProps}
         type="submit"
-        fullWidth
-        variant="contained"
-        sx={{ mt: 3, mb: 2 }}
         disabled={isSubmitDisabled}
+        endIcon={<LoginIcon />}
       >
         Sign In
       </Button>
       <Box sx={{ display: 'flex', justifyContent: 'center' }}>
         <Button
+          {...buttonProps}
           component={Link}
           to="/signup"
           variant="outlined"
-          sx={{ mt: 1 }}
+          endIcon={<AppRegistrationIcon />}
         >
           Don't have an account? Sign Up
         </Button>

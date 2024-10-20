@@ -6,10 +6,11 @@ import Login from './components/Login';
 import Logout from './components/Logout';
 import SymptomTracker from './components/SymptomTracker';
 import SymptomAnalysis from './components/SymptomAnalysis';
+import SymptomTable from './components/SymptomTable';
 import { Box, AppBar, Toolbar, Typography, Button } from '@mui/material';
 
 const NavButton = React.memo(({ to, children }) => (
-  <Button color="inherit" component={Link} to={to}>
+  <Button color="inherit" component={Link} to={to} sx={{ marginRight: 2 }}>
     {children}
   </Button>
 ));
@@ -40,17 +41,19 @@ function App() {
       <Route path="/signup" element={user ? <Navigate to="/track" replace /> : <Signup />} />
       {renderProtectedRoute("/track", SymptomTracker)}
       {renderProtectedRoute("/analyse", SymptomAnalysis)}
+      {renderProtectedRoute("/table", SymptomTable)}
     </>
   ), [user, renderProtectedRoute]);
 
   const navButtons = useMemo(() => (
     user && (
       <>
-        <Typography variant="body1" sx={userEmailSx}>
+        <Typography variant="body2" sx={userEmailSx}>
           {user.email}
         </Typography>
         <NavButton to="/track">Track</NavButton>
         <NavButton to="/analyse">Analyse</NavButton>
+        <NavButton to="/table">Table</NavButton>
         <Logout />
       </>
     )

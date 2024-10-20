@@ -1,5 +1,6 @@
 import React, { useCallback, memo } from 'react';
 import { Button } from '@mui/material';
+import LogoutIcon from '@mui/icons-material/Logout';
 import { getAuth, signOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 
@@ -18,6 +19,7 @@ const Logout = memo(function Logout() {
       variant="contained" 
       color="secondary" 
       onClick={handleLogout}
+      endIcon={<LogoutIcon />}
     >
       Logout
     </Button>
