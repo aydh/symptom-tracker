@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Typography, CircularProgress } from '@mui/material';
-import { db } from '../firebase';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { fetchDynamicFields } from '../utils/dynamicFieldsUtil';
+import { fetchSymptomData } from '../utils/symptomUtils';
 
 function SymptomTable({ user }) {
   const [symptomData, setSymptomData] = useState([]);
@@ -19,24 +18,11 @@ function SymptomTable({ user }) {
 
     try {
       // Fetch dynamic fields
-      const fields = await fetchDynamicFields();
+      const fields = await fetchDynamicFields(user.uid);
       setDynamicFields(fields);
 
-      // Fetch symptom data
-      const q = query(
-        collection(db, "symptoms"),
-        where("userId", "==", user.uid),
-        orderBy("timestamp", "desc")
-      );
-      const querySnapshot = await getDocs(q);
-      const data = querySnapshot.docs.map(doc => {
-        const docData = doc.data();
-        return {
-          id: doc.id,
-          ...docData,
-          timestamp: docData.timestamp?.toDate?.() || new Date(docData.timestamp)
-        };
-      });
+      // Fetch symptom data using the new utility function
+      const data = await fetchSymptomData(user.uid);
       setSymptomData(data);
     } catch (err) {
       console.error('Error fetching data:', err);

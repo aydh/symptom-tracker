@@ -13,9 +13,8 @@ import {
   Filler
 } from 'chart.js';
 import annotationPlugin from 'chartjs-plugin-annotation';
-import { db } from '../firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
 import { fetchDynamicFields } from '../utils/dynamicFieldsUtil';
+import { fetchSymptomData } from '../utils/symptomUtils';
 
 ChartJS.register(
   CategoryScale,
@@ -113,7 +112,7 @@ function SymptomAnalysis({ user }) {
   const [error, setError] = useState(null);
   const [toggledFields, setToggledFields] = useState({});
 
-  const fetchSymptomData = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     if (!user?.uid) {
       setError('No user found');
       setLoading(false);
@@ -121,12 +120,10 @@ function SymptomAnalysis({ user }) {
     }
 
     try {
-      const fields = await fetchDynamicFields();
+      const fields = await fetchDynamicFields(user.uid);
       setDynamicFields(fields);
 
-      const q = query(collection(db, "symptoms"), where("userId", "==", user.uid));
-      const querySnapshot = await getDocs(q);
-      const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const data = await fetchSymptomData(user.uid);
       setSymptomData(data);
     } catch (err) {
       setError('Error fetching symptom data');
@@ -136,8 +133,8 @@ function SymptomAnalysis({ user }) {
   }, [user]);
 
   useEffect(() => {
-    fetchSymptomData();
-  }, [fetchSymptomData]);
+    fetchData();
+  }, [fetchData]);
 
   useEffect(() => {
     // Initialize all boolean fields as toggled on

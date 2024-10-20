@@ -16,12 +16,12 @@ function SymptomTracker({ user }) {
   // Fetch dynamic fields from Firestore
   const getDynamicFields = useCallback(async () => {
     try {
-      const fields = await fetchDynamicFields();
+      const fields = await fetchDynamicFields(user.uid);
       setDynamicFields(fields);
     } catch (err) {
       console.error('Error fetching dynamic fields:', err);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     getDynamicFields();
