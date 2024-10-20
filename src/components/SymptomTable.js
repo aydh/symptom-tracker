@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Typography, CircularProgress } from '@mui/material';
 import { fetchDynamicFields } from '../utils/dynamicFieldsUtil';
 import { fetchSymptomData } from '../utils/symptomUtils';
 
-function SymptomTable({ user }) {
+const SymptomTable = ({ user }) => {
   const [symptomData, setSymptomData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -17,12 +17,11 @@ function SymptomTable({ user }) {
     }
 
     try {
-      // Fetch dynamic fields
-      const fields = await fetchDynamicFields(user.uid);
+      const [fields, data] = await Promise.all([
+        fetchDynamicFields(user.uid),
+        fetchSymptomData(user.uid)
+      ]);
       setDynamicFields(fields);
-
-      // Fetch symptom data using the new utility function
-      const data = await fetchSymptomData(user.uid);
       setSymptomData(data);
     } catch (err) {
       console.error('Error fetching data:', err);
@@ -30,19 +29,15 @@ function SymptomTable({ user }) {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user?.uid]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  if (loading) return <CircularProgress />;
-  if (error) return <Typography color="error">{error}</Typography>;
-  if (symptomData.length === 0) return <Typography>No symptom data available.</Typography>;
+  const columns = useMemo(() => ['timestamp', ...dynamicFields.map(field => field.title)], [dynamicFields]);
 
-  const columns = ['timestamp', ...dynamicFields.map(field => field.title)];
-
-  const formatCellValue = (value, column) => {
+  const formatCellValue = useCallback((value, column) => {
     if (column === 'timestamp') {
       const date = value instanceof Date ? value : new Date(value);
       return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}`;
@@ -51,7 +46,11 @@ function SymptomTable({ user }) {
       return value ? 'Yes' : 'No';
     }
     return value !== undefined && value !== null ? value.toString() : '';
-  };
+  }, []);
+
+  if (loading) return <CircularProgress />;
+  if (error) return <Typography color="error">{error}</Typography>;
+  if (symptomData.length === 0) return <Typography>No symptom data available.</Typography>;
 
   return (
     <TableContainer component={Paper} sx={{ maxWidth: 1200, margin: 'auto', marginTop: 2 }}>
@@ -79,6 +78,6 @@ function SymptomTable({ user }) {
       </Table>
     </TableContainer>
   );
-}
+};
 
-export default SymptomTable;
+export default React.memo(SymptomTable);

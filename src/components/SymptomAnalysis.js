@@ -16,6 +16,7 @@ import annotationPlugin from 'chartjs-plugin-annotation';
 import { fetchDynamicFields } from '../utils/dynamicFieldsUtil';
 import { fetchSymptomData } from '../utils/symptomUtils';
 
+// Register ChartJS components
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -28,10 +29,16 @@ ChartJS.register(
   annotationPlugin
 );
 
-function BooleanFieldsList({ dynamicFields, toggledFields, onToggle }) {
-  const booleanFields = dynamicFields.filter(field => field.type === 'boolean');
+// Memoized component for rendering boolean fields
+const BooleanFieldsList = React.memo(({ dynamicFields, toggledFields, onToggle }) => {
+  // Filter boolean fields once
+  const booleanFields = useMemo(() => 
+    dynamicFields.filter(field => field.type === 'boolean'),
+    [dynamicFields]
+  );
 
-  const renderPointStyle = (style, color) => {
+  // Memoize the point style rendering function
+  const renderPointStyle = useCallback((style, color) => {
     const size = 16;
     switch (style) {
       case 'circle':
@@ -72,13 +79,13 @@ function BooleanFieldsList({ dynamicFields, toggledFields, onToggle }) {
       default:
         return <circle cx={size/2} cy={size/2} r={size/2} fill={color} />;
     }
-  };
+  }, []);
 
   return (
     <Box sx={{ marginBottom: 2 }}>
       <List dense>
-        {booleanFields.map((field, index) => (
-          <ListItem key={index}>
+        {booleanFields.map((field) => (
+          <ListItem key={field.title}>
             <ListItemIcon>
               <svg width="16" height="16" viewBox="0 0 16 16">
                 {renderPointStyle(field.pointStyle || 'star', field.pointColor || 'red')}
@@ -91,7 +98,7 @@ function BooleanFieldsList({ dynamicFields, toggledFields, onToggle }) {
             <FormControlLabel
               control={
                 <Switch
-                  checked={toggledFields[field.title]}
+                  checked={!!toggledFields[field.title]} // Ensure it's always a boolean
                   onChange={() => onToggle(field.title)}
                   name={field.title}
                 />
@@ -103,15 +110,18 @@ function BooleanFieldsList({ dynamicFields, toggledFields, onToggle }) {
       </List>
     </Box>
   );
-}
+});
 
-function SymptomAnalysis({ user }) {
+// Main SymptomAnalysis component
+const SymptomAnalysis = ({ user }) => {
   const [symptomData, setSymptomData] = useState([]);
   const [dynamicFields, setDynamicFields] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [toggledFields, setToggledFields] = useState({});
+  const [isInitialized, setIsInitialized] = useState(false);
 
+  // Fetch data function
   const fetchData = useCallback(async () => {
     if (!user?.uid) {
       setError('No user found');
@@ -120,65 +130,64 @@ function SymptomAnalysis({ user }) {
     }
 
     try {
-      const fields = await fetchDynamicFields(user.uid);
+      const [fields, data] = await Promise.all([
+        fetchDynamicFields(user.uid),
+        fetchSymptomData(user.uid)
+      ]);
       setDynamicFields(fields);
-
-      const data = await fetchSymptomData(user.uid);
       setSymptomData(data);
+
+      // Initialize toggledFields here
+      const initialToggledState = fields.reduce((acc, field) => {
+        if (field.type === 'boolean') {
+          acc[field.title] = true;
+        }
+        return acc;
+      }, {});
+      setToggledFields(initialToggledState);
+      setIsInitialized(true);
     } catch (err) {
+      console.error('Error fetching data:', err);
       setError('Error fetching symptom data');
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user?.uid]);
 
+  // Fetch data on component mount or when user changes
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  useEffect(() => {
-    // Initialize all boolean fields as toggled on
-    if (dynamicFields.length > 0) {
-      const initialToggledState = {};
-      dynamicFields.forEach(field => {
-        if (field.type === 'boolean') {
-          initialToggledState[field.title] = true;
-        }
-      });
-      setToggledFields(initialToggledState);
-    }
-  }, [dynamicFields]);
-
-  const handleToggle = (fieldTitle) => {
+  // Toggle field handler
+  const handleToggle = useCallback((fieldTitle) => {
     setToggledFields(prev => ({
       ...prev,
       [fieldTitle]: !prev[fieldTitle]
     }));
-  };
+  }, []);
 
+  // Prepare chart data
   const prepareChartData = useMemo(() => {
     if (symptomData.length === 0 || dynamicFields.length === 0) return [];
 
-    const sortedData = symptomData.sort((a, b) => {
-      const dateA = a.timestamp?.toDate?.() || new Date(a.timestamp);
-      const dateB = b.timestamp?.toDate?.() || new Date(b.timestamp);
-      return dateA - dateB;
-    });
-
+    const sortedData = symptomData.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
     const labels = sortedData.map(entry => {
-      const date = entry.timestamp?.toDate?.() || new Date(entry.timestamp);
+      const date = new Date(entry.timestamp);
       return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}`;
     });
 
     const calculateMovingAverage = (data, windowSize) => {
-      return data.map((_, index, array) => {
-        if (index < windowSize - 1) {
-          return null; // Not enough data for the full window
+      const result = [];
+      for (let i = 0; i < data.length; i++) {
+        if (i < windowSize - 1) {
+          result.push(null);
+        } else {
+          const windowSum = data.slice(i - windowSize + 1, i + 1).reduce((sum, val) => sum + (Number(val) || 0), 0);
+          result.push(windowSum / windowSize);
         }
-        const window = array.slice(index - windowSize + 1, index + 1);
-        const sum = window.reduce((acc, val) => acc + (Number(val) || 0), 0);
-        return sum / windowSize;
-      });
+      }
+      return result;
     };
 
     return dynamicFields
@@ -186,8 +195,7 @@ function SymptomAnalysis({ user }) {
       .map(field => {
         const data = sortedData.map(entry => entry[field.title]);
         const movingAverageData = calculateMovingAverage(data, 5);
-        const sum = data.reduce((acc, val) => acc + (Number(val) || 0), 0);
-        const avg = sum / data.length;
+        const avg = data.reduce((sum, val) => sum + (Number(val) || 0), 0) / data.length;
 
         const booleanAnnotations = dynamicFields
           .filter(bField => bField.type === 'boolean' && toggledFields[bField.title])
@@ -255,6 +263,7 @@ function SymptomAnalysis({ user }) {
   if (loading) return <CircularProgress />;
   if (error) return <Typography color="error">{error}</Typography>;
   if (prepareChartData.length === 0) return <Typography>No symptom data available for analysis.</Typography>;
+  if (!isInitialized) return null; // Don't render anything until initialization is complete
 
   return (
     <Box sx={{ maxWidth: 1200, margin: 'auto', padding: 2 }}>
@@ -317,6 +326,7 @@ function SymptomAnalysis({ user }) {
       </Stack>
     </Box>
   );
-}
+};
 
-export default SymptomAnalysis;
+// Export the memoized version of SymptomAnalysis
+export default React.memo(SymptomAnalysis);
