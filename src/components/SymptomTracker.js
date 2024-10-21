@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { 
   TextField, Select, MenuItem, Box, Typography, Switch, 
-  FormControlLabel, FormControl, InputLabel, IconButton 
+  FormControlLabel, FormControl, InputLabel, IconButton,
+  CircularProgress
 } from '@mui/material';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
@@ -17,6 +18,7 @@ function SymptomTracker({ user }) {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [dynamicFields, setDynamicFields] = useState([]);
   const [dynamicValues, setDynamicValues] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
 
   const getDynamicFields = useCallback(async () => {
     try {
@@ -34,6 +36,7 @@ function SymptomTracker({ user }) {
   const getEntryForDate = useCallback(async (date) => {
     if (!user || !user.uid) return;
 
+    setIsLoading(true);
     try {
       const symptoms = await fetchSymptoms(user.uid);
       const matchingSymptom = symptoms.find(s => {
@@ -66,6 +69,8 @@ function SymptomTracker({ user }) {
       }
     } catch (err) {
       console.error('Error fetching symptoms:', err);
+    } finally {
+      setIsLoading(false);
     }
   }, [user, dynamicFields]);
 
@@ -73,16 +78,17 @@ function SymptomTracker({ user }) {
     getEntryForDate(selectedDate);
   }, [getEntryForDate, selectedDate]);
 
-  const saveSymptom = useCallback(async () => {
+  const saveSymptom = useCallback(async (newValues) => {
     if (!user || !user.uid) {
       console.error('User is not properly initialized');
       return;
     }
 
+    setIsLoading(true);
     try {
       const symptomData = {
         timestamp: startOfDay(selectedDate),
-        ...dynamicValues
+        ...newValues
       };
 
       if (symptom) {
@@ -91,16 +97,21 @@ function SymptomTracker({ user }) {
         const newSymptomId = await addSymptom(user.uid, symptomData);
         setSymptom({ id: newSymptomId, ...symptomData });
       }
+      console.log('Symptom saved successfully');
     } catch (e) {
       console.error("Error saving symptom:", e);
+    } finally {
+      setIsLoading(false);
     }
-  }, [user, symptom, selectedDate, dynamicValues]);
+  }, [user, symptom, selectedDate]);
 
   const handleDynamicFieldChange = (fieldTitle, value) => {
-    setDynamicValues(prev => ({
-      ...prev,
+    const newValues = {
+      ...dynamicValues,
       [fieldTitle]: value
-    }));
+    };
+    setDynamicValues(newValues);
+    saveSymptom(newValues);
   };
 
   const handleDateChange = (newDate) => {
@@ -112,24 +123,6 @@ function SymptomTracker({ user }) {
       console.log('Cannot select a future date');
     }
   };
-
-  useEffect(() => {
-    const debounceTimer = setTimeout(() => {
-      if (Object.keys(dynamicValues).length > 0) {
-        saveSymptom();
-      }
-    }, 500);
-
-    return () => clearTimeout(debounceTimer);
-  }, [saveSymptom, dynamicValues]);
-
-  const sortedDynamicFields = useMemo(() => {
-    return [...dynamicFields].sort((a, b) => {
-      const orderA = typeof a.order === 'number' ? a.order : parseInt(a.order) || 0;
-      const orderB = typeof b.order === 'number' ? b.order : parseInt(b.order) || 0;
-      return orderA - orderB;
-    });
-  }, [dynamicFields]);
 
   const handlePreviousDay = () => {
     setSelectedDate(prevDate => subDays(prevDate, 1));
@@ -144,12 +137,20 @@ function SymptomTracker({ user }) {
     }
   };
 
+  const sortedDynamicFields = useMemo(() => {
+    return [...dynamicFields].sort((a, b) => {
+      const orderA = typeof a.order === 'number' ? a.order : parseInt(a.order) || 0;
+      const orderB = typeof b.order === 'number' ? b.order : parseInt(b.order) || 0;
+      return orderA - orderB;
+    });
+  }, [dynamicFields]);
+
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={enAU}>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxWidth: 400, margin: 'auto', padding: 2 }}>
         <Typography variant="h4" gutterBottom>Track</Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <IconButton onClick={handlePreviousDay} aria-label="previous day">
+          <IconButton onClick={handlePreviousDay} aria-label="previous day" disabled={isLoading}>
             <ArrowBackIosNewIcon />
           </IconButton>
           <DatePicker
@@ -158,59 +159,66 @@ function SymptomTracker({ user }) {
             onChange={handleDateChange}
             maxDate={new Date()}
             renderInput={(params) => <TextField {...params} sx={{ width: '60%' }} />}
+            disabled={isLoading}
           />
           <IconButton 
             onClick={handleNextDay} 
             aria-label="next day"
-            disabled={isSameDay(selectedDate, new Date())}
+            disabled={isLoading || isSameDay(selectedDate, new Date())}
           >
             <ArrowForwardIosIcon />
           </IconButton>
         </Box>
-        {sortedDynamicFields.map((field) => (
-          <Box key={field.id}>
-            {field.type === 'select' ? (
-              <FormControl fullWidth>
-                <InputLabel id={`${field.id}-label`}>{field.label}</InputLabel>
-                <Select
+        {isLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          sortedDynamicFields.map((field) => (
+            <Box key={field.id}>
+              {field.type === 'select' ? (
+                <FormControl fullWidth>
+                  <InputLabel id={`${field.id}-label`}>{field.label}</InputLabel>
+                  <Select
+                    id={field.id}
+                    value={dynamicValues[field.title] || ''}
+                    labelId={`${field.id}-label`}
+                    label={field.label}
+                    onChange={(e) => handleDynamicFieldChange(field.title, e.target.value)}
+                    fullWidth
+                  >
+                    <MenuItem value="" disabled>{`${field.label}`}</MenuItem>
+                    {field.values.map(value => (
+                      <MenuItem key={value} value={value}>{value}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              ) : field.type === 'text' ? (
+                <TextField
                   id={field.id}
                   value={dynamicValues[field.title] || ''}
-                  labelId={`${field.id}-label`}
                   label={field.label}
                   onChange={(e) => handleDynamicFieldChange(field.title, e.target.value)}
                   fullWidth
-                >
-                  <MenuItem value="" disabled>{`${field.label}`}</MenuItem>
-                  {field.values.map(value => (
-                    <MenuItem key={value} value={value}>{value}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            ) : field.type === 'text' ? (
-              <TextField
-                id={field.id}
-                value={dynamicValues[field.title] || ''}
-                label={field.label}
-                onChange={(e) => handleDynamicFieldChange(field.title, e.target.value)}
-                fullWidth
-                multiline={field.multiline}
-                rows={field.multiline ? 4 : 1}
-              />
-            ) : field.type === 'boolean' ? (
-              <FormControlLabel
-                id={field.id}
-                control={
-                  <Switch
-                    checked={dynamicValues[field.title] || false}
-                    onChange={(e) => handleDynamicFieldChange(field.title, e.target.checked)}
-                    color="primary"
-                  />
-                }
-                label={field.label}
-              />
-            ) : null}
-          </Box>
-        ))}
+                  multiline={field.multiline}
+                  rows={field.multiline ? 4 : 1}
+                />
+              ) : field.type === 'boolean' ? (
+                <FormControlLabel
+                  id={field.id}
+                  control={
+                    <Switch
+                      checked={dynamicValues[field.title] || false}
+                      onChange={(e) => handleDynamicFieldChange(field.title, e.target.checked)}
+                      color="primary"
+                    />
+                  }
+                  label={field.label}
+                />
+              ) : null}
+            </Box>
+          ))
+        )}
       </Box>
     </LocalizationProvider>
   );
