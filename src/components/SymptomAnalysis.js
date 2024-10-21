@@ -195,7 +195,6 @@ const SymptomAnalysis = ({ user }) => {
       .map(field => {
         const data = sortedData.map(entry => entry[field.title]);
         const movingAverageData = calculateMovingAverage(data, 5);
-        const avg = data.reduce((sum, val) => sum + (Number(val) || 0), 0) / data.length;
 
         const booleanAnnotations = dynamicFields
           .filter(bField => bField.type === 'boolean' && toggledFields[bField.title])
@@ -222,30 +221,21 @@ const SymptomAnalysis = ({ user }) => {
             {
               label: `Daily ${field.title}`,
               data,
-              borderColor: 'rgb(75, 192, 192)',
+              borderColor: '#9900f6',
               borderWidth: 1,
-              backgroundColor: 'rgba(75, 192, 192, 0.2)',
+              backgroundColor: 'rgb(153, 0, 246, 0.2)',
               fill: true,
               tension: 0.3,
-              pointRadius: 3
+              pointRadius: 2
             },
             {
               label: `5-Day Moving Average ${field.title}`,
               data: movingAverageData,
-              borderColor: 'rgb(255, 159, 64)',
-              borderWidth: 2,
+              borderColor: '#9900f6',
+              borderWidth: 1,
+              borderDash: [6, 6],
               fill: false,
               tension: 0.3,
-              pointRadius: 0
-            },
-            {
-              label: `Average ${field.title}`,
-              data: Array(labels.length).fill(avg),
-              borderColor: 'rgb(255, 99, 132)',
-              borderWidth: 1,
-              borderDash: [5, 5],
-              fill: false,
-              tension: 0,
               pointRadius: 0
             }
           ],

@@ -12,6 +12,15 @@ import enAU from 'date-fns/locale/en-AU';
 import { fetchDynamicFields } from '../utils/dynamicFieldsUtil';
 import { fetchSymptoms, addSymptom, updateSymptom } from '../utils/symptomUtils';
 import { startOfDay, endOfDay, isSameDay, parseISO, addDays, subDays } from 'date-fns';
+import { styled } from '@mui/material/styles';
+
+const ColouredBackIcon = styled(ArrowBackIosNewIcon)(({ theme }) => ({
+  color: theme.palette.icon.main, // Using the color from the theme
+}));
+
+const ColouredForwardIcon = styled(ArrowForwardIosIcon)(({ theme }) => ({
+  color: theme.palette.icon.main, // Using the color from the theme
+}));
 
 function SymptomTracker({ user }) {
   const [symptom, setSymptom] = useState(null);
@@ -198,7 +207,7 @@ function SymptomTracker({ user }) {
         <Typography variant="h4" gutterBottom>Track</Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <IconButton onClick={handlePreviousDay} aria-label="previous day" disabled={isLoading}>
-            <ArrowBackIosNewIcon />
+            <ColouredBackIcon />
           </IconButton>
           <DatePicker
             label="Select Date"
@@ -215,7 +224,7 @@ function SymptomTracker({ user }) {
             aria-label="next day"
             disabled={isLoading || isSameDay(selectedDate, new Date())}
           >
-            <ArrowForwardIosIcon />
+            <ColouredForwardIcon />
           </IconButton>
         </Box>
         {isLoading ? (

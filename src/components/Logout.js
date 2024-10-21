@@ -3,7 +3,11 @@ import { Button } from '@mui/material';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { getAuth, signOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
+import { styled } from '@mui/material/styles';
 
+const ColouredLogoutIcon = styled(LogoutIcon)(({ theme }) => ({
+  color: theme.palette.icon.main, // Using the color from the theme
+}));
 const Logout = memo(function Logout() {
   const navigate = useNavigate();
 
@@ -23,7 +27,7 @@ const Logout = memo(function Logout() {
       variant="contained" 
       color="secondary" 
       onClick={handleLogout}
-      endIcon={<LogoutIcon />}
+      endIcon={<ColouredLogoutIcon />}
     >
       Logout
     </Button>

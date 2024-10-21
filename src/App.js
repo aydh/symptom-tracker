@@ -8,20 +8,24 @@ import SymptomTracker from './components/SymptomTracker';
 import SymptomAnalysis from './components/SymptomAnalysis';
 import SymptomTable from './components/SymptomTable';
 import DynamicFieldsManager from './components/DynamicFieldsManager';
-import { Box, AppBar, Toolbar, Typography, Button, IconButton, Drawer, List, ListItem, ListItemText, useMediaQuery, useTheme, CircularProgress } from '@mui/material';
+import { Box, AppBar, Toolbar, Typography, Button, IconButton, Drawer, List, ListItem, ListItemText, useMediaQuery, CircularProgress } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import ListItemButton from '@mui/material/ListItemButton';
 import ClearCacheButton from './components/ClearCacheButton';
 import { clearCache } from './utils/cacheUtils';  // Import the clearCache function
+import { ThemeProvider } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import theme from './theme';
+
+const typographySx = { flexGrow: 1 };
+const userEmailSx = { marginRight: 1 };
+const navButtonSx = { marginRight: 0 };
 
 const NavButton = React.memo(({ to, children }) => (
-  <Button color="inherit" component={Link} to={to} sx={{ marginRight: 2 }}>
+  <Button color="inherit" component={Link} to={to} sx={navButtonSx}>
     {children}
   </Button>
 ));
-
-const typographySx = { flexGrow: 1 };
-const userEmailSx = { marginRight: 2 };
 
 // New function to clear cache and refresh
 const clearCacheAndRefresh = () => {
@@ -33,7 +37,6 @@ function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   useEffect(() => {
@@ -44,12 +47,12 @@ function App() {
     return unsubscribe;
   }, []);
 
-  const toggleDrawer = (open) => (event) => {
+  const toggleDrawer = useCallback((open) => (event) => {
     if (event.type === 'keydown' && (event.key === 'Tab' || event.key === 'Shift')) {
       return;
     }
     setDrawerOpen(open);
-  };
+  }, []); // Empty dependency array as it doesn't depend on any props or state
 
   const renderProtectedRoute = useCallback((path, Component) => (
     <Route 
@@ -120,7 +123,6 @@ function App() {
             aria-label="open drawer"
             edge="start"
             onClick={toggleDrawer(true)}
-            sx={{ mr: 2 }}
           >
             <MenuIcon />
           </IconButton>
@@ -138,7 +140,7 @@ function App() {
         )}
       </>
     )
-  ), [user, isMobile, navItems]);
+  ), [user, isMobile, navItems, toggleDrawer]);
 
   if (loading) {
     return (
@@ -149,26 +151,29 @@ function App() {
   }
 
   return (
-    <Router>
-      <Box sx={{ flexGrow: 1 }}>
-        <AppBar position="static">
-          <Toolbar>
-            <Typography variant="h6" component="div" sx={typographySx}>
-              Symptom Tracker
-            </Typography>
-            {navButtons}
-          </Toolbar>
-        </AppBar>
-        <Drawer
-          anchor="left"
-          open={drawerOpen}
-          onClose={toggleDrawer(false)}
-        >
-          {navList}
-        </Drawer>
-        <Routes>{routes}</Routes>
-      </Box>
-    </Router>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Router>
+        <Box sx={{ flexGrow: 1 }}>
+          <AppBar position="static">
+            <Toolbar>
+              <Typography variant="h6" component="div" sx={typographySx}>
+                Symptom Tracker
+              </Typography>
+              {navButtons}
+            </Toolbar>
+          </AppBar>
+          <Drawer
+            anchor="left"
+            open={drawerOpen}
+            onClose={toggleDrawer(false)}
+          >
+            {navList}
+          </Drawer>
+          <Routes>{routes}</Routes>
+        </Box>
+      </Router>
+    </ThemeProvider>
   );
 }
 

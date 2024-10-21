@@ -7,7 +7,16 @@ import {
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
 import { fetchDynamicFields, addDynamicField, updateDynamicField, deleteDynamicField } from '../utils/dynamicFieldsUtil';
+import { styled } from '@mui/material/styles';
 
+const ColouredDeleteIcon = styled(DeleteIcon)(({ theme }) => ({
+  color: theme.palette.icon.main, // Using the color from the theme
+}));
+
+const ColouredSaveIcon = styled(SaveIcon)(({ theme }) => ({
+    color: theme.palette.icon.main, // Using the color from the theme
+  }));
+  
 const FieldRow = React.memo(({ field, index, onInputChange, onSave, onDelete }) => {
   const handleChange = useCallback((name, value) => {
     onInputChange(index, name, value);
@@ -96,8 +105,8 @@ const FieldRow = React.memo(({ field, index, onInputChange, onSave, onDelete }) 
         )}
       </TableCell>
       <TableCell>
-        <IconButton onClick={() => onSave(index)}><SaveIcon /></IconButton>
-        {field.id && <IconButton onClick={() => onDelete(field.id)}><DeleteIcon /></IconButton>}
+        <IconButton onClick={() => onSave(index)}><ColouredSaveIcon /></IconButton>
+        {field.id && <IconButton onClick={() => onDelete(field.id)}><ColouredDeleteIcon /></IconButton>}
       </TableCell>
     </TableRow>
   );

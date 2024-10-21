@@ -6,6 +6,12 @@ import {
 import DeleteIcon from '@mui/icons-material/Delete';
 import { fetchDynamicFields } from '../utils/dynamicFieldsUtil';
 import { fetchSymptoms, deleteSymptom } from '../utils/symptomUtils';
+import { styled } from '@mui/material/styles';
+
+const ColouredDeleteIcon = styled(DeleteIcon)(({ theme }) => ({
+  color: theme.palette.icon.main, // Using the color from the theme
+}));
+
 
 const SymptomTable = ({ user }) => {
   const [symptomData, setSymptomData] = useState([]);
@@ -90,7 +96,7 @@ const SymptomTable = ({ user }) => {
                     {column === 'actions' ? (
                       <Tooltip title="Delete">
                         <IconButton onClick={() => handleDelete(row.id)} aria-label="delete">
-                          <DeleteIcon />
+                          <ColouredDeleteIcon />
                         </IconButton>
                       </Tooltip>
                     ) : (
