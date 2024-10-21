@@ -7,9 +7,11 @@ import Logout from './components/Logout';
 import SymptomTracker from './components/SymptomTracker';
 import SymptomAnalysis from './components/SymptomAnalysis';
 import SymptomTable from './components/SymptomTable';
+import DynamicFieldsManager from './components/DynamicFieldsManager';
 import { Box, AppBar, Toolbar, Typography, Button, IconButton, Drawer, List, ListItem, ListItemText, useMediaQuery, useTheme } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import ListItemButton from '@mui/material/ListItemButton';
+import ClearCacheButton from './components/ClearCacheButton';
 
 const NavButton = React.memo(({ to, children }) => (
   <Button color="inherit" component={Link} to={to} sx={{ marginRight: 2 }}>
@@ -19,6 +21,24 @@ const NavButton = React.memo(({ to, children }) => (
 
 const typographySx = { flexGrow: 1 };
 const userEmailSx = { marginRight: 2 };
+
+// Move clearCache function outside of the component
+const clearCache = () => {
+  // Clear application cache
+  if ('caches' in window) {
+    caches.keys().then((names) => {
+      names.forEach((name) => {
+        caches.delete(name);
+      });
+    });
+  }
+  // Clear local storage
+  localStorage.clear();
+  // Clear session storage
+  sessionStorage.clear();
+  
+  alert('Cache cleared successfully!');
+};
 
 function App() {
   const [user, setUser] = useState(null);
@@ -53,6 +73,7 @@ function App() {
       {renderProtectedRoute("/track", SymptomTracker)}
       {renderProtectedRoute("/analyse", SymptomAnalysis)}
       {renderProtectedRoute("/table", SymptomTable)}
+      {renderProtectedRoute("/manage-fields", DynamicFieldsManager)}
     </>
   ), [user, renderProtectedRoute]);
 
@@ -60,6 +81,8 @@ function App() {
     { text: 'Track', path: '/track' },
     { text: 'Analyse', path: '/analyse' },
     { text: 'Table', path: '/table' },
+    { text: 'Manage Fields', path: '/manage-fields' },
+    { text: 'Clear Cache', action: clearCache },
   ], []);
 
   const navList = (
@@ -72,9 +95,15 @@ function App() {
       <List>
         {navItems.map((item) => (
           <ListItem key={item.text} disablePadding>
-            <ListItemButton component={Link} to={item.path}>
-              <ListItemText primary={item.text} />
-            </ListItemButton>
+            {item.path ? (
+              <ListItemButton component={Link} to={item.path}>
+                <ListItemText primary={item.text} />
+              </ListItemButton>
+            ) : (
+              <ListItemButton onClick={item.action}>
+                <ListItemText primary={item.text} />
+              </ListItemButton>
+            )}
           </ListItem>
         ))}
         <ListItem disablePadding>
@@ -105,7 +134,11 @@ function App() {
         ) : (
           <>
             {navItems.map((item) => (
-              <NavButton key={item.text} to={item.path}>{item.text}</NavButton>
+              item.path ? (
+                <NavButton key={item.text} to={item.path}>{item.text}</NavButton>
+              ) : (
+                <ClearCacheButton key={item.text} onClick={item.action} />
+              )
             ))}
             <Logout />
           </>

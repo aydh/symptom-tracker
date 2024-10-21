@@ -1,5 +1,5 @@
 import { db } from '../firebase';
-import { collection, query, where, getDocs, orderBy, limit, addDoc, serverTimestamp, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, limit, addDoc, serverTimestamp, updateDoc, doc, deleteDoc, getDoc } from 'firebase/firestore';
 
 const CACHE_KEY = 'dynamicFieldsCache';
 
@@ -102,7 +102,10 @@ export const addDynamicField = async (userId, fieldData) => {
  * @param {Object} updateData - The data to update the field with.
  * @throws {Error} If no field ID is provided, if updateData is invalid, or if there's an error updating the data.
  */
-export const updateDynamicField = async (fieldId, updateData) => {
+export const updateDynamicField = async (userId, fieldId, updateData) => {
+  if (!userId) {
+    throw new Error('No user ID provided');
+  }
   if (!fieldId) {
     throw new Error('No field ID provided');
   }
@@ -138,10 +141,14 @@ export const updateDynamicField = async (fieldId, updateData) => {
 
 /**
  * Deletes a dynamic field.
+ * @param {string} userId - The user ID to delete the field for.
  * @param {string} fieldId - The ID of the field to delete.
- * @throws {Error} If no field ID is provided or if there's an error deleting the field.
+ * @throws {Error} If no user ID or field ID is provided, or if there's an error deleting the field.
  */
-export const deleteDynamicField = async (fieldId) => {
+export const deleteDynamicField = async (userId, fieldId) => {
+  if (!userId) {
+    throw new Error('No user ID provided');
+  }
   if (!fieldId) {
     throw new Error('No field ID provided');
   }
@@ -149,10 +156,13 @@ export const deleteDynamicField = async (fieldId) => {
   try {
     console.log('deleteDynamicField: Deleting from database');
     const fieldRef = doc(db, "dynamicFields", fieldId);
-    const fieldDoc = await getDocs(fieldRef);
+    const fieldDoc = await getDoc(fieldRef);
     
     if (fieldDoc.exists()) {
-      const userId = fieldDoc.data().userId;
+      const fieldData = fieldDoc.data();
+      if (fieldData.userId !== userId) {
+        throw new Error('User does not have permission to delete this field');
+      }
       await deleteDoc(fieldRef);
 
       // Update cache
@@ -165,6 +175,6 @@ export const deleteDynamicField = async (fieldId) => {
     }
   } catch (error) {
     console.error('Error deleting dynamic field:', error);
-    throw new Error('Failed to delete dynamic field');
+    throw error;
   }
 };
