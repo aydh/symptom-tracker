@@ -3,17 +3,16 @@ import { TextField, Select, MenuItem, Box, Typography, Switch, FormControlLabel,
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import enAU from 'date-fns/locale/en-AU';
-import { db } from '../firebase';
-import { collection, addDoc, doc, updateDoc, query, where, getDocs } from 'firebase/firestore';
 import { fetchDynamicFields } from '../utils/dynamicFieldsUtil';
+import { fetchSymptoms, addSymptom, updateSymptom } from '../utils/symptomUtils';
+import { startOfDay, endOfDay, isSameDay, parseISO } from 'date-fns';
 
 function SymptomTracker({ user }) {
-  const [docId, setDocId] = useState(null);
+  const [symptom, setSymptom] = useState(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [dynamicFields, setDynamicFields] = useState([]);
   const [dynamicValues, setDynamicValues] = useState({});
 
-  // Fetch dynamic fields from Firestore
   const getDynamicFields = useCallback(async () => {
     try {
       const fields = await fetchDynamicFields(user.uid);
@@ -30,32 +29,38 @@ function SymptomTracker({ user }) {
   const getEntryForDate = useCallback(async (date) => {
     if (!user || !user.uid) return;
 
-    const startOfDay = new Date(date);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(date);
-    endOfDay.setHours(23, 59, 59, 999);
-
-    const q = query(
-      collection(db, "symptoms"),
-      where("userId", "==", user.uid),
-      where("timestamp", ">=", startOfDay),
-      where("timestamp", "<=", endOfDay)
-    );
-
-    const querySnapshot = await getDocs(q);
-    if (!querySnapshot.empty) {
-      const doc = querySnapshot.docs[0];
-      setDocId(doc.id);
-      const dynamicData = {};
-      dynamicFields.forEach(field => {
-        if (doc.data()[field.title] !== undefined) {
-          dynamicData[field.title] = doc.data()[field.title];
+    try {
+      const symptoms = await fetchSymptoms(user.uid);
+      const matchingSymptom = symptoms.find(s => {
+        let symptomDate;
+        if (s.timestamp instanceof Date) {
+          symptomDate = s.timestamp;
+        } else if (typeof s.timestamp === 'string') {
+          symptomDate = parseISO(s.timestamp);
+        } else if (s.timestamp && typeof s.timestamp.toDate === 'function') {
+          symptomDate = s.timestamp.toDate();
+        } else {
+          console.error('Invalid timestamp format:', s.timestamp);
+          return false;
         }
+        return isSameDay(symptomDate, date);
       });
-      setDynamicValues(dynamicData);
-    } else {
-      setDocId(null);
-      setDynamicValues({});
+
+      if (matchingSymptom) {
+        setSymptom(matchingSymptom);
+        const dynamicData = {};
+        dynamicFields.forEach(field => {
+          if (matchingSymptom[field.title] !== undefined) {
+            dynamicData[field.title] = matchingSymptom[field.title];
+          }
+        });
+        setDynamicValues(dynamicData);
+      } else {
+        setSymptom(null);
+        setDynamicValues({});
+      }
+    } catch (err) {
+      console.error('Error fetching symptoms:', err);
     }
   }, [user, dynamicFields]);
 
@@ -71,23 +76,20 @@ function SymptomTracker({ user }) {
 
     try {
       const symptomData = {
-        timestamp: selectedDate,
+        timestamp: startOfDay(selectedDate),
         ...dynamicValues
       };
 
-      if (docId) {
-        await updateDoc(doc(db, "symptoms", docId), symptomData);
+      if (symptom) {
+        await updateSymptom(user.uid, symptom.id, symptomData);
       } else {
-        const docRef = await addDoc(collection(db, "symptoms"), {
-          userId: user.uid,
-          ...symptomData
-        });
-        setDocId(docRef.id);
+        const newSymptomId = await addSymptom(user.uid, symptomData);
+        setSymptom({ id: newSymptomId, ...symptomData });
       }
     } catch (e) {
-      console.error("Error saving document: ", e);
+      console.error("Error saving symptom:", e);
     }
-  }, [user, docId, selectedDate, dynamicValues]);
+  }, [user, symptom, selectedDate, dynamicValues]);
 
   const handleDynamicFieldChange = (fieldTitle, value) => {
     setDynamicValues(prev => ({
@@ -98,13 +100,11 @@ function SymptomTracker({ user }) {
 
   const handleDateChange = (newDate) => {
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
     
-    if (newDate <= today) {
+    if (newDate <= endOfDay(today)) {
       setSelectedDate(newDate);
     } else {
       console.log('Cannot select a future date');
-      // Optionally, you can show a user-friendly message here
     }
   };
 
