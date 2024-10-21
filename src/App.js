@@ -24,20 +24,24 @@ const userEmailSx = { marginRight: 2 };
 
 // Move clearCache function outside of the component
 const clearCache = () => {
-  // Clear application cache
   if ('caches' in window) {
     caches.keys().then((names) => {
-      names.forEach((name) => {
+      names.forEach(name => {
         caches.delete(name);
       });
     });
   }
+  
   // Clear local storage
   localStorage.clear();
+  
   // Clear session storage
   sessionStorage.clear();
-  
-  alert('Cache cleared successfully!');
+
+  console.log('Cache cleared successfully');
+
+  // Reload the current page
+  window.location.reload();
 };
 
 function App() {
