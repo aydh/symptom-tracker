@@ -14,7 +14,7 @@ import {
 } from 'chart.js';
 import annotationPlugin from 'chartjs-plugin-annotation';
 import { fetchDynamicFields } from '../utils/dynamicFieldsUtil';
-import { fetchSymptomData } from '../utils/symptomUtils';
+import { fetchSymptoms } from '../utils/symptomUtils';
 
 // Register ChartJS components
 ChartJS.register(
@@ -132,7 +132,7 @@ const SymptomAnalysis = ({ user }) => {
     try {
       const [fields, data] = await Promise.all([
         fetchDynamicFields(user.uid),
-        fetchSymptomData(user.uid)
+        fetchSymptoms(user.uid)
       ]);
       setDynamicFields(fields);
       setSymptomData(data);

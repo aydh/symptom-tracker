@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Typography, CircularProgress } from '@mui/material';
 import { fetchDynamicFields } from '../utils/dynamicFieldsUtil';
-import { fetchSymptomData } from '../utils/symptomUtils';
+import { fetchSymptoms } from '../utils/symptomUtils';
 
 const SymptomTable = ({ user }) => {
   const [symptomData, setSymptomData] = useState([]);
@@ -19,7 +19,7 @@ const SymptomTable = ({ user }) => {
     try {
       const [fields, data] = await Promise.all([
         fetchDynamicFields(user.uid),
-        fetchSymptomData(user.uid)
+        fetchSymptoms(user.uid)
       ]);
       setDynamicFields(fields);
       setSymptomData(data);

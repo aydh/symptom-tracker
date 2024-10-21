@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   Box, Typography, Button, TextField, Select, MenuItem, 
   FormControl, Switch, FormControlLabel, 
@@ -8,11 +8,106 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
 import { fetchDynamicFields, addDynamicField, updateDynamicField, deleteDynamicField } from '../utils/dynamicFieldsUtil';
 
+const FieldRow = React.memo(({ field, index, onInputChange, onSave, onDelete }) => {
+  const handleChange = useCallback((name, value) => {
+    onInputChange(index, name, value);
+  }, [index, onInputChange]);
+
+  return (
+    <TableRow>
+      <TableCell>
+        <TextField
+          name="title"
+          value={field.title}
+          onChange={(e) => handleChange('title', e.target.value)}
+          fullWidth
+        />
+      </TableCell>
+      <TableCell>
+        <TextField
+          name="label"
+          value={field.label}
+          onChange={(e) => handleChange('label', e.target.value)}
+          fullWidth
+        />
+      </TableCell>
+      <TableCell>
+        <FormControl fullWidth>
+          <Select
+            name="type"
+            value={field.type}
+            onChange={(e) => handleChange('type', e.target.value)}
+          >
+            <MenuItem value="text">Text</MenuItem>
+            <MenuItem value="boolean">Boolean</MenuItem>
+            <MenuItem value="select">Select</MenuItem>
+          </Select>
+        </FormControl>
+      </TableCell>
+      <TableCell>
+        <TextField
+          name="order"
+          type="number"
+          value={field.order}
+          onChange={(e) => handleChange('order', Number(e.target.value))}
+          fullWidth
+        />
+      </TableCell>
+      <TableCell>
+        {field.type === 'text' && (
+          <FormControlLabel
+            control={
+              <Switch 
+                name="multiline" 
+                checked={field.multiline} 
+                onChange={(e) => handleChange('multiline', e.target.checked)}
+              />
+            }
+            label="Multiline"
+          />
+        )}
+        {field.type === 'boolean' && (
+          <>
+            <TextField
+              name="pointColor"
+              value={field.pointColor}
+              onChange={(e) => handleChange('pointColor', e.target.value)}
+              placeholder="Point Color"
+              fullWidth
+              sx={{ mb: 1 }}
+            />
+            <TextField
+              name="pointStyle"
+              value={field.pointStyle}
+              onChange={(e) => handleChange('pointStyle', e.target.value)}
+              placeholder="Point Style"
+              fullWidth
+            />
+          </>
+        )}
+        {field.type === 'select' && (
+          <TextField
+            name="values"
+            value={field.values.join(',')}
+            onChange={(e) => handleChange('values', e.target.value.split(','))}
+            placeholder="Values (comma-separated)"
+            fullWidth
+          />
+        )}
+      </TableCell>
+      <TableCell>
+        <IconButton onClick={() => onSave(index)}><SaveIcon /></IconButton>
+        {field.id && <IconButton onClick={() => onDelete(field.id)}><DeleteIcon /></IconButton>}
+      </TableCell>
+    </TableRow>
+  );
+});
+
 const DynamicFieldsManager = ({ user }) => {
   const [fields, setFields] = useState([]);
 
   const loadFields = useCallback(async () => {
-    if (!user || !user.uid) {
+    if (!user?.uid) {
       console.error('No user ID available');
       return;
     }
@@ -22,24 +117,28 @@ const DynamicFieldsManager = ({ user }) => {
     } catch (error) {
       console.error('Error loading fields:', error);
     }
-  }, [user]);
+  }, [user?.uid]);
 
   useEffect(() => {
-    if (user && user.uid) {
+    if (user?.uid) {
       loadFields();
     }
-  }, [user, loadFields]);
+  }, [user?.uid, loadFields]);
 
-  const handleInputChange = (index, name, value) => {
+  const handleInputChange = useCallback((index, name, value) => {
     setFields(prevFields => {
       const newFields = [...prevFields];
       newFields[index] = { ...newFields[index], [name]: value };
       return newFields;
     });
-  };
+  }, []);
 
-  const handleSaveField = async (index) => {
+  const handleSaveField = useCallback(async (index) => {
     const field = fields[index];
+    if (!user?.uid) {
+      console.error('No user ID available');
+      return;
+    }
     try {
       if (field.id) {
         await updateDynamicField(user.uid, field.id, field);
@@ -50,10 +149,10 @@ const DynamicFieldsManager = ({ user }) => {
     } catch (error) {
       console.error('Error saving field:', error);
     }
-  };
+  }, [fields, user?.uid, loadFields]);
 
-  const handleDeleteField = async (fieldId) => {
-    if (!user || !user.uid) {
+  const handleDeleteField = useCallback(async (fieldId) => {
+    if (!user?.uid) {
       console.error('No user ID available');
       return;
     }
@@ -63,9 +162,9 @@ const DynamicFieldsManager = ({ user }) => {
     } catch (error) {
       console.error('Error deleting field:', error);
     }
-  };
+  }, [user?.uid, loadFields]);
 
-  const handleAddNewRow = () => {
+  const handleAddNewRow = useCallback(() => {
     setFields(prevFields => [...prevFields, {
       title: '',
       label: '',
@@ -76,98 +175,11 @@ const DynamicFieldsManager = ({ user }) => {
       pointStyle: '',
       values: []
     }]);
-  };
+  }, []);
 
-  const renderFieldRow = (field, index) => {
-    return (
-      <TableRow key={field.id || `new-${index}`}>
-        <TableCell>
-          <TextField
-            name="title"
-            value={field.title}
-            onChange={(e) => handleInputChange(index, 'title', e.target.value)}
-            fullWidth
-          />
-        </TableCell>
-        <TableCell>
-          <TextField
-            name="label"
-            value={field.label}
-            onChange={(e) => handleInputChange(index, 'label', e.target.value)}
-            fullWidth
-          />
-        </TableCell>
-        <TableCell>
-          <FormControl fullWidth>
-            <Select
-              name="type"
-              value={field.type}
-              onChange={(e) => handleInputChange(index, 'type', e.target.value)}
-            >
-              <MenuItem value="text">Text</MenuItem>
-              <MenuItem value="boolean">Boolean</MenuItem>
-              <MenuItem value="select">Select</MenuItem>
-            </Select>
-          </FormControl>
-        </TableCell>
-        <TableCell>
-          <TextField
-            name="order"
-            type="number"
-            value={field.order}
-            onChange={(e) => handleInputChange(index, 'order', Number(e.target.value))}
-            fullWidth
-          />
-        </TableCell>
-        <TableCell>
-          {field.type === 'text' && (
-            <FormControlLabel
-              control={
-                <Switch 
-                  name="multiline" 
-                  checked={field.multiline} 
-                  onChange={(e) => handleInputChange(index, 'multiline', e.target.checked)}
-                />
-              }
-              label="Multiline"
-            />
-          )}
-          {field.type === 'boolean' && (
-            <>
-              <TextField
-                name="pointColor"
-                value={field.pointColor}
-                onChange={(e) => handleInputChange(index, 'pointColor', e.target.value)}
-                placeholder="Point Color"
-                fullWidth
-                sx={{ mb: 1 }}
-              />
-              <TextField
-                name="pointStyle"
-                value={field.pointStyle}
-                onChange={(e) => handleInputChange(index, 'pointStyle', e.target.value)}
-                placeholder="Point Style"
-                fullWidth
-              />
-            </>
-          )}
-          {field.type === 'select' && (
-            <TextField
-              name="values"
-              value={field.values.join(',')}
-              onChange={(e) => handleInputChange(index, 'values', e.target.value.split(','))}
-              placeholder="Values (comma-separated)"
-              fullWidth
-            />
-          )}
-        </TableCell>
-        <TableCell>
-          <IconButton onClick={() => handleSaveField(index)}><SaveIcon /></IconButton>
-          {field.id && <IconButton onClick={() => handleDeleteField(field.id)}><DeleteIcon /></IconButton>}
-        </TableCell>
-      </TableRow>
-    );
-  };
+  const tableHeaders = useMemo(() => [
+    'Title', 'Label', 'Type', 'Order', 'Additional Settings', 'Actions'
+  ], []);
 
   return (
     <Box>
@@ -177,16 +189,22 @@ const DynamicFieldsManager = ({ user }) => {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Title</TableCell>
-              <TableCell>Label</TableCell>
-              <TableCell>Type</TableCell>
-              <TableCell>Order</TableCell>
-              <TableCell>Additional Settings</TableCell>
-              <TableCell>Actions</TableCell>
+              {tableHeaders.map(header => (
+                <TableCell key={header}>{header}</TableCell>
+              ))}
             </TableRow>
           </TableHead>
           <TableBody>
-            {fields.map((field, index) => renderFieldRow(field, index))}
+            {fields.map((field, index) => (
+              <FieldRow 
+                key={field.id || `new-${index}`}
+                field={field}
+                index={index}
+                onInputChange={handleInputChange}
+                onSave={handleSaveField}
+                onDelete={handleDeleteField}
+              />
+            ))}
           </TableBody>
         </Table>
       </TableContainer>
@@ -198,4 +216,4 @@ const DynamicFieldsManager = ({ user }) => {
   );
 };
 
-export default DynamicFieldsManager;
+export default React.memo(DynamicFieldsManager);
