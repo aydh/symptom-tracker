@@ -12,6 +12,7 @@ import { Box, AppBar, Toolbar, Typography, Button, IconButton, Drawer, List, Lis
 import MenuIcon from '@mui/icons-material/Menu';
 import ListItemButton from '@mui/material/ListItemButton';
 import ClearCacheButton from './components/ClearCacheButton';
+import { clearCache } from './utils/cacheUtils';  // Import the clearCache function
 
 const NavButton = React.memo(({ to, children }) => (
   <Button color="inherit" component={Link} to={to} sx={{ marginRight: 2 }}>
@@ -22,25 +23,9 @@ const NavButton = React.memo(({ to, children }) => (
 const typographySx = { flexGrow: 1 };
 const userEmailSx = { marginRight: 2 };
 
-// Move clearCache function outside of the component
-const clearCache = () => {
-  if ('caches' in window) {
-    caches.keys().then((names) => {
-      names.forEach(name => {
-        caches.delete(name);
-      });
-    });
-  }
-  
-  // Clear local storage
-  localStorage.clear();
-  
-  // Clear session storage
-  sessionStorage.clear();
-
-  console.log('Cache cleared successfully');
-
-  // Reload the current page
+// New function to clear cache and refresh
+const clearCacheAndRefresh = () => {
+  clearCache();
   window.location.reload();
 };
 
@@ -90,7 +75,7 @@ function App() {
     { text: 'Analyse', path: '/analyse' },
     { text: 'Table', path: '/table' },
     { text: 'Configure', path: '/config' },
-    { text: 'Refresh', action: clearCache },
+    { text: 'Refresh', action: clearCacheAndRefresh },
   ], []);
 
   const navList = (

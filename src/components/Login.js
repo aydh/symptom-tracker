@@ -4,6 +4,7 @@ import LoginIcon from '@mui/icons-material/Login';
 import AppRegistrationIcon from '@mui/icons-material/AppRegistration';
 import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 import { useNavigate, Link } from 'react-router-dom';
+import { clearCache } from '../utils/cacheUtils';
 
 const textFieldCommonProps = {
   margin: "normal",
@@ -31,6 +32,7 @@ function Login() {
     try {
       const userCredential = await signInWithEmailAndPassword(getAuth(), credentials.email, credentials.password);
       console.log('Login successful:', userCredential.user);
+      clearCache(); // Clear the cache after successful login
       navigate('/track');
     } catch (error) {
       console.error('Login error:', error.code, error.message);
