@@ -3,7 +3,7 @@ import Button from '@mui/material/Button';
 
 const ClearCacheButton = ({ onClick }) => (
   <Button color="inherit" onClick={onClick} sx={{ marginRight: 2 }}>
-    Clear Cache
+    Refresh
   </Button>
 );
 

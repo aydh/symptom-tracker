@@ -8,7 +8,7 @@ import SymptomTracker from './components/SymptomTracker';
 import SymptomAnalysis from './components/SymptomAnalysis';
 import SymptomTable from './components/SymptomTable';
 import DynamicFieldsManager from './components/DynamicFieldsManager';
-import { Box, AppBar, Toolbar, Typography, Button, IconButton, Drawer, List, ListItem, ListItemText, useMediaQuery, useTheme } from '@mui/material';
+import { Box, AppBar, Toolbar, Typography, Button, IconButton, Drawer, List, ListItem, ListItemText, useMediaQuery, useTheme, CircularProgress } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import ListItemButton from '@mui/material/ListItemButton';
 import ClearCacheButton from './components/ClearCacheButton';
@@ -46,12 +46,16 @@ const clearCache = () => {
 
 function App() {
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(setUser);
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setUser(user);
+      setLoading(false);
+    });
     return unsubscribe;
   }, []);
 
@@ -77,7 +81,7 @@ function App() {
       {renderProtectedRoute("/track", SymptomTracker)}
       {renderProtectedRoute("/analyse", SymptomAnalysis)}
       {renderProtectedRoute("/table", SymptomTable)}
-      {renderProtectedRoute("/manage-fields", DynamicFieldsManager)}
+      {renderProtectedRoute("/config", DynamicFieldsManager)}
     </>
   ), [user, renderProtectedRoute]);
 
@@ -85,8 +89,8 @@ function App() {
     { text: 'Track', path: '/track' },
     { text: 'Analyse', path: '/analyse' },
     { text: 'Table', path: '/table' },
-    { text: 'Manage Fields', path: '/manage-fields' },
-    { text: 'Clear Cache', action: clearCache },
+    { text: 'Configure', path: '/config' },
+    { text: 'Refresh', action: clearCache },
   ], []);
 
   const navList = (
@@ -150,6 +154,14 @@ function App() {
       </>
     )
   ), [user, isMobile, navItems]);
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Router>
