@@ -1,6 +1,17 @@
 import { db } from '../firebase';
 import { collection, query, where, getDocs, orderBy, limit, addDoc, serverTimestamp, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 
+const CACHE_KEY = 'dynamicFieldsCache';
+
+const getCache = (userId) => {
+  const cache = localStorage.getItem(`${CACHE_KEY}_${userId}`);
+  return cache ? JSON.parse(cache) : null;
+};
+
+const setCache = (userId, data) => {
+  localStorage.setItem(`${CACHE_KEY}_${userId}`, JSON.stringify(data));
+};
+
 /**
  * Fetches dynamic fields for a given user ID.
  * @param {string} userId - The user ID to fetch dynamic fields for.
@@ -14,6 +25,14 @@ export const fetchDynamicFields = async (userId, maxResults = 100) => {
   }
 
   try {
+    // Check cache first
+    const cachedData = getCache(userId);
+    if (cachedData) {
+      console.log('fetchDynamicFields: Using cached data');
+      return cachedData.slice(0, maxResults);
+    }
+
+    console.log('fetchDynamicFields: Fetching from database');
     const q = query(
       collection(db, "dynamicFields"),
       where("userId", "==", userId),
@@ -22,11 +41,17 @@ export const fetchDynamicFields = async (userId, maxResults = 100) => {
     );
 
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({
+    const fields = querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
       timestamp: doc.data().timestamp?.toDate?.() || new Date(doc.data().timestamp)
     }));
+
+    // Update cache
+    setCache(userId, fields);
+    console.log('fetchDynamicFields: Updated cache with fetched data');
+
+    return fields;
   } catch (error) {
     console.error('Error fetching dynamic fields:', error);
     throw new Error('Failed to fetch dynamic fields');
@@ -50,12 +75,19 @@ export const addDynamicField = async (userId, fieldData) => {
   }
 
   try {
+    console.log('addDynamicField: Adding to database');
     const dynamicFieldsRef = collection(db, "dynamicFields");
     const newFieldRef = await addDoc(dynamicFieldsRef, {
       ...fieldData,
       userId,
       timestamp: serverTimestamp()
     });
+
+    // Update cache
+    const cachedData = getCache(userId) || [];
+    const newField = { id: newFieldRef.id, ...fieldData, userId, timestamp: new Date() };
+    setCache(userId, [...cachedData, newField]);
+    console.log('addDynamicField: Updated cache with new field');
 
     return newFieldRef.id;
   } catch (error) {
@@ -80,11 +112,24 @@ export const updateDynamicField = async (fieldId, updateData) => {
   }
 
   try {
+    console.log('updateDynamicField: Updating in database');
     const fieldRef = doc(db, "dynamicFields", fieldId);
     await updateDoc(fieldRef, {
       ...updateData,
       lastUpdated: serverTimestamp()
     });
+
+    // Update cache
+    const fieldDoc = await getDocs(fieldRef);
+    if (fieldDoc.exists()) {
+      const userId = fieldDoc.data().userId;
+      const cachedData = getCache(userId) || [];
+      const updatedFields = cachedData.map(field => 
+        field.id === fieldId ? { ...field, ...updateData, lastUpdated: new Date() } : field
+      );
+      setCache(userId, updatedFields);
+      console.log('updateDynamicField: Updated cache with modified field');
+    }
   } catch (error) {
     console.error('Error updating dynamic field:', error);
     throw new Error('Failed to update dynamic field');
@@ -102,8 +147,22 @@ export const deleteDynamicField = async (fieldId) => {
   }
 
   try {
+    console.log('deleteDynamicField: Deleting from database');
     const fieldRef = doc(db, "dynamicFields", fieldId);
-    await deleteDoc(fieldRef);
+    const fieldDoc = await getDocs(fieldRef);
+    
+    if (fieldDoc.exists()) {
+      const userId = fieldDoc.data().userId;
+      await deleteDoc(fieldRef);
+
+      // Update cache
+      const cachedData = getCache(userId) || [];
+      const updatedFields = cachedData.filter(field => field.id !== fieldId);
+      setCache(userId, updatedFields);
+      console.log('deleteDynamicField: Updated cache after deletion');
+    } else {
+      throw new Error('Field not found');
+    }
   } catch (error) {
     console.error('Error deleting dynamic field:', error);
     throw new Error('Failed to delete dynamic field');
