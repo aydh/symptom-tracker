@@ -9,8 +9,12 @@ const Logout = memo(function Logout() {
 
   const handleLogout = useCallback(() => {
     const auth = getAuth();
+    console.log('Logging out:',auth.currentUser.email);
     signOut(auth)
-      .then(() => navigate('/'))
+      .then(() => {
+        console.log('User logged out successfully.');
+        navigate('/');
+      })
       .catch((error) => console.error('Error signing out:', error));
   }, [navigate]);
 

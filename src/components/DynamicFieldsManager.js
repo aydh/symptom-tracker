@@ -182,8 +182,8 @@ const DynamicFieldsManager = ({ user }) => {
   ], []);
 
   return (
-    <Box>
-      <Typography variant="h4" gutterBottom>Manage Dynamic Fields</Typography>
+    <Box sx={{ maxWidth: 1200, margin: 'auto', padding: 2 }}>
+      <Typography variant="h4" gutterBottom>Configure</Typography>
       
       <TableContainer component={Paper}>
         <Table>

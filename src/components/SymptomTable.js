@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, 
-  Typography, CircularProgress, IconButton, Tooltip 
+  Typography, CircularProgress, IconButton, Tooltip, Box 
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { fetchDynamicFields } from '../utils/dynamicFieldsUtil';
@@ -69,38 +69,41 @@ const SymptomTable = ({ user }) => {
   if (symptomData.length === 0) return <Typography>No symptom data available.</Typography>;
 
   return (
-    <TableContainer component={Paper} sx={{ maxWidth: 1200, margin: 'auto', marginTop: 2 }}>
-      <Table sx={{ minWidth: 650 }} aria-label="symptom data table">
-        <TableHead>
-          <TableRow>
-            {columns.map((column) => (
-              <TableCell key={column} sx={{ fontWeight: 'bold' }}>
-                {column === 'actions' ? '' : column.charAt(0).toUpperCase() + column.slice(1)}
-              </TableCell>
-            ))}
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {symptomData.map((row) => (
-            <TableRow key={row.id} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
+    <Box sx={{ maxWidth: 1200, margin: 'auto', padding: 2 }}>
+      <Typography variant="h4" gutterBottom>Table</Typography>
+      <TableContainer component={Paper} sx={{ maxWidth: 1200, margin: 'auto', marginTop: 2 }}>
+        <Table sx={{ minWidth: 650 }} aria-label="symptom data table">
+          <TableHead>
+            <TableRow>
               {columns.map((column) => (
-                <TableCell key={column}>
-                  {column === 'actions' ? (
-                    <Tooltip title="Delete">
-                      <IconButton onClick={() => handleDelete(row.id)} aria-label="delete">
-                        <DeleteIcon />
-                      </IconButton>
-                    </Tooltip>
-                  ) : (
-                    formatCellValue(row[column], column)
-                  )}
+                <TableCell key={column} sx={{ fontWeight: 'bold' }}>
+                  {column === 'actions' ? '' : column.charAt(0).toUpperCase() + column.slice(1)}
                 </TableCell>
               ))}
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
+          </TableHead>
+          <TableBody>
+            {symptomData.map((row) => (
+              <TableRow key={row.id} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
+                {columns.map((column) => (
+                  <TableCell key={column}>
+                    {column === 'actions' ? (
+                      <Tooltip title="Delete">
+                        <IconButton onClick={() => handleDelete(row.id)} aria-label="delete">
+                          <DeleteIcon />
+                        </IconButton>
+                      </Tooltip>
+                    ) : (
+                      formatCellValue(row[column], column)
+                    )}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Box>
   );
 };
 

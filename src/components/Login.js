@@ -31,7 +31,7 @@ function Login() {
     e.preventDefault();
     try {
       const userCredential = await signInWithEmailAndPassword(getAuth(), credentials.email, credentials.password);
-      console.log('Login successful:', userCredential.user);
+      console.log('Login successful:', userCredential.user.email);
       clearCache(); // Clear the cache after successful login
       navigate('/track');
     } catch (error) {
