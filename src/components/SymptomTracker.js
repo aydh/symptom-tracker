@@ -27,41 +27,39 @@ function SymptomTracker({ user }) {
     } catch (err) {
       console.error('Error fetching dynamic fields:', err);
     }
-  }, [user]);
+  }, [user.uid]);
 
   useEffect(() => {
     getDynamicFields();
   }, [getDynamicFields]);
 
+  const parseTimestamp = useCallback((timestamp) => {
+    if (timestamp instanceof Date) return timestamp;
+    if (typeof timestamp === 'string') return parseISO(timestamp);
+    if (timestamp && typeof timestamp.toDate === 'function') return timestamp.toDate();
+    console.error('Invalid timestamp format:', timestamp);
+    return null;
+  }, []);
+
   const getEntryForDate = useCallback(async (date) => {
-    if (!user || !user.uid) return;
+    if (!user.uid) return;
 
     setIsLoading(true);
     try {
       const symptoms = await fetchSymptoms(user.uid);
       const matchingSymptom = symptoms.find(s => {
-        let symptomDate;
-        if (s.timestamp instanceof Date) {
-          symptomDate = s.timestamp;
-        } else if (typeof s.timestamp === 'string') {
-          symptomDate = parseISO(s.timestamp);
-        } else if (s.timestamp && typeof s.timestamp.toDate === 'function') {
-          symptomDate = s.timestamp.toDate();
-        } else {
-          console.error('Invalid timestamp format:', s.timestamp);
-          return false;
-        }
-        return isSameDay(symptomDate, date);
+        const symptomDate = parseTimestamp(s.timestamp);
+        return symptomDate && isSameDay(symptomDate, date);
       });
 
       if (matchingSymptom) {
         setSymptom(matchingSymptom);
-        const dynamicData = {};
-        dynamicFields.forEach(field => {
+        const dynamicData = dynamicFields.reduce((acc, field) => {
           if (matchingSymptom[field.title] !== undefined) {
-            dynamicData[field.title] = matchingSymptom[field.title];
+            acc[field.title] = matchingSymptom[field.title];
           }
-        });
+          return acc;
+        }, {});
         setDynamicValues(dynamicData);
       } else {
         setSymptom(null);
@@ -72,14 +70,14 @@ function SymptomTracker({ user }) {
     } finally {
       setIsLoading(false);
     }
-  }, [user, dynamicFields]);
+  }, [user.uid, dynamicFields, parseTimestamp]);
 
   useEffect(() => {
     getEntryForDate(selectedDate);
   }, [getEntryForDate, selectedDate]);
 
   const saveSymptom = useCallback(async (newValues) => {
-    if (!user || !user.uid) {
+    if (!user.uid) {
       console.error('User is not properly initialized');
       return;
     }
@@ -103,39 +101,35 @@ function SymptomTracker({ user }) {
     } finally {
       setIsLoading(false);
     }
-  }, [user, symptom, selectedDate]);
+  }, [user.uid, symptom, selectedDate]);
 
-  const handleDynamicFieldChange = (fieldTitle, value) => {
-    const newValues = {
-      ...dynamicValues,
-      [fieldTitle]: value
-    };
-    setDynamicValues(newValues);
-    saveSymptom(newValues);
-  };
+  const handleDynamicFieldChange = useCallback((fieldTitle, value) => {
+    setDynamicValues(prev => {
+      const newValues = { ...prev, [fieldTitle]: value };
+      saveSymptom(newValues);
+      return newValues;
+    });
+  }, [saveSymptom]);
 
-  const handleDateChange = (newDate) => {
+  const handleDateChange = useCallback((newDate) => {
     const today = new Date();
-    
     if (newDate <= endOfDay(today)) {
       setSelectedDate(newDate);
     } else {
       console.log('Cannot select a future date');
     }
-  };
+  }, []);
 
-  const handlePreviousDay = () => {
+  const handlePreviousDay = useCallback(() => {
     setSelectedDate(prevDate => subDays(prevDate, 1));
-  };
+  }, []);
 
-  const handleNextDay = () => {
-    const nextDay = addDays(selectedDate, 1);
-    if (nextDay <= new Date()) {
-      setSelectedDate(nextDay);
-    } else {
-      console.log('Cannot select a future date');
-    }
-  };
+  const handleNextDay = useCallback(() => {
+    setSelectedDate(prevDate => {
+      const nextDay = addDays(prevDate, 1);
+      return nextDay <= new Date() ? nextDay : prevDate;
+    });
+  }, []);
 
   const sortedDynamicFields = useMemo(() => {
     return [...dynamicFields].sort((a, b) => {
@@ -144,6 +138,59 @@ function SymptomTracker({ user }) {
       return orderA - orderB;
     });
   }, [dynamicFields]);
+
+  const renderField = useCallback((field) => {
+    switch (field.type) {
+      case 'select':
+        return (
+          <FormControl fullWidth key={field.id}>
+            <InputLabel id={`${field.id}-label`}>{field.label}</InputLabel>
+            <Select
+              id={field.id}
+              value={dynamicValues[field.title] || ''}
+              labelId={`${field.id}-label`}
+              label={field.label}
+              onChange={(e) => handleDynamicFieldChange(field.title, e.target.value)}
+              fullWidth
+            >
+              <MenuItem value="" disabled>{`${field.label}`}</MenuItem>
+              {field.values.map(value => (
+                <MenuItem key={value} value={value}>{value}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        );
+      case 'text':
+        return (
+          <TextField
+            key={field.id}
+            id={field.id}
+            value={dynamicValues[field.title] || ''}
+            label={field.label}
+            onChange={(e) => handleDynamicFieldChange(field.title, e.target.value)}
+            fullWidth
+            multiline={field.multiline}
+            rows={field.multiline ? 4 : 1}
+          />
+        );
+      case 'boolean':
+        return (
+          <FormControlLabel
+            key={field.id}
+            control={
+              <Switch
+                checked={dynamicValues[field.title] || false}
+                onChange={(e) => handleDynamicFieldChange(field.title, e.target.checked)}
+                color="primary"
+              />
+            }
+            label={field.label}
+          />
+        );
+      default:
+        return null;
+    }
+  }, [dynamicValues, handleDynamicFieldChange]);
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={enAU}>
@@ -176,54 +223,11 @@ function SymptomTracker({ user }) {
             <CircularProgress />
           </Box>
         ) : (
-          sortedDynamicFields.map((field) => (
-            <Box key={field.id}>
-              {field.type === 'select' ? (
-                <FormControl fullWidth>
-                  <InputLabel id={`${field.id}-label`}>{field.label}</InputLabel>
-                  <Select
-                    id={field.id}
-                    value={dynamicValues[field.title] || ''}
-                    labelId={`${field.id}-label`}
-                    label={field.label}
-                    onChange={(e) => handleDynamicFieldChange(field.title, e.target.value)}
-                    fullWidth
-                  >
-                    <MenuItem value="" disabled>{`${field.label}`}</MenuItem>
-                    {field.values.map(value => (
-                      <MenuItem key={value} value={value}>{value}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              ) : field.type === 'text' ? (
-                <TextField
-                  id={field.id}
-                  value={dynamicValues[field.title] || ''}
-                  label={field.label}
-                  onChange={(e) => handleDynamicFieldChange(field.title, e.target.value)}
-                  fullWidth
-                  multiline={field.multiline}
-                  rows={field.multiline ? 4 : 1}
-                />
-              ) : field.type === 'boolean' ? (
-                <FormControlLabel
-                  id={field.id}
-                  control={
-                    <Switch
-                      checked={dynamicValues[field.title] || false}
-                      onChange={(e) => handleDynamicFieldChange(field.title, e.target.checked)}
-                      color="primary"
-                    />
-                  }
-                  label={field.label}
-                />
-              ) : null}
-            </Box>
-          ))
+          sortedDynamicFields.map(renderField)
         )}
       </Box>
     </LocalizationProvider>
   );
 }
 
-export default SymptomTracker;
+export default React.memo(SymptomTracker);
