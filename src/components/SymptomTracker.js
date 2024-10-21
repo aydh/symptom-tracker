@@ -1,11 +1,16 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { TextField, Select, MenuItem, Box, Typography, Switch, FormControlLabel, FormControl, InputLabel } from '@mui/material';
+import { 
+  TextField, Select, MenuItem, Box, Typography, Switch, 
+  FormControlLabel, FormControl, InputLabel, IconButton 
+} from '@mui/material';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
+import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
+import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import enAU from 'date-fns/locale/en-AU';
 import { fetchDynamicFields } from '../utils/dynamicFieldsUtil';
 import { fetchSymptoms, addSymptom, updateSymptom } from '../utils/symptomUtils';
-import { startOfDay, endOfDay, isSameDay, parseISO } from 'date-fns';
+import { startOfDay, endOfDay, isSameDay, parseISO, addDays, subDays } from 'date-fns';
 
 function SymptomTracker({ user }) {
   const [symptom, setSymptom] = useState(null);
@@ -126,19 +131,41 @@ function SymptomTracker({ user }) {
     });
   }, [dynamicFields]);
 
+  const handlePreviousDay = () => {
+    setSelectedDate(prevDate => subDays(prevDate, 1));
+  };
+
+  const handleNextDay = () => {
+    const nextDay = addDays(selectedDate, 1);
+    if (nextDay <= new Date()) {
+      setSelectedDate(nextDay);
+    } else {
+      console.log('Cannot select a future date');
+    }
+  };
+
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={enAU}>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxWidth: 400, margin: 'auto', padding: 2 }}>
         <Typography variant="h4" gutterBottom>Track</Typography>
-        <Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <IconButton onClick={handlePreviousDay} aria-label="previous day">
+            <ArrowBackIosNewIcon />
+          </IconButton>
           <DatePicker
             label="Select Date"
             value={selectedDate}
             onChange={handleDateChange}
             maxDate={new Date()}
-            sx={{ width: '100%' }}
-            textField={(params) => <TextField {...params} fullWidth />}
+            renderInput={(params) => <TextField {...params} sx={{ width: '60%' }} />}
           />
+          <IconButton 
+            onClick={handleNextDay} 
+            aria-label="next day"
+            disabled={isSameDay(selectedDate, new Date())}
+          >
+            <ArrowForwardIosIcon />
+          </IconButton>
         </Box>
         {sortedDynamicFields.map((field) => (
           <Box key={field.id}>
