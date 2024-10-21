@@ -158,8 +158,10 @@ function SymptomTracker({ user }) {
             value={selectedDate}
             onChange={handleDateChange}
             maxDate={new Date()}
-            renderInput={(params) => <TextField {...params} sx={{ width: '60%' }} />}
-            disabled={isLoading}
+            slotProps={{ textField: { sx: { width: '60%' } } }}
+            slots={{
+              textField: (params) => <TextField {...params} />
+            }}
           />
           <IconButton 
             onClick={handleNextDay} 
