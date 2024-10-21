@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Typography, CircularProgress } from '@mui/material';
+import { 
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, 
+  Typography, CircularProgress, IconButton, Tooltip 
+} from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { fetchDynamicFields } from '../utils/dynamicFieldsUtil';
-import { fetchSymptoms } from '../utils/symptomUtils';
+import { fetchSymptoms, deleteSymptom } from '../utils/symptomUtils';
 
 const SymptomTable = ({ user }) => {
   const [symptomData, setSymptomData] = useState([]);
@@ -35,7 +39,7 @@ const SymptomTable = ({ user }) => {
     fetchData();
   }, [fetchData]);
 
-  const columns = useMemo(() => ['timestamp', ...dynamicFields.map(field => field.title)], [dynamicFields]);
+  const columns = useMemo(() => ['timestamp', ...dynamicFields.map(field => field.title), 'actions'], [dynamicFields]);
 
   const formatCellValue = useCallback((value, column) => {
     if (column === 'timestamp') {
@@ -48,6 +52,18 @@ const SymptomTable = ({ user }) => {
     return value !== undefined && value !== null ? value.toString() : '';
   }, []);
 
+  const handleDelete = useCallback(async (symptomId) => {
+    if (window.confirm('Are you sure you want to delete this symptom?')) {
+      try {
+        await deleteSymptom(user.uid, symptomId);
+        setSymptomData(prevData => prevData.filter(symptom => symptom.id !== symptomId));
+      } catch (err) {
+        console.error('Error deleting symptom:', err);
+        alert('Failed to delete symptom. Please try again.');
+      }
+    }
+  }, [user?.uid]);
+
   if (loading) return <CircularProgress />;
   if (error) return <Typography color="error">{error}</Typography>;
   if (symptomData.length === 0) return <Typography>No symptom data available.</Typography>;
@@ -59,7 +75,7 @@ const SymptomTable = ({ user }) => {
           <TableRow>
             {columns.map((column) => (
               <TableCell key={column} sx={{ fontWeight: 'bold' }}>
-                {column.charAt(0).toUpperCase() + column.slice(1)}
+                {column === 'actions' ? '' : column.charAt(0).toUpperCase() + column.slice(1)}
               </TableCell>
             ))}
           </TableRow>
@@ -69,7 +85,15 @@ const SymptomTable = ({ user }) => {
             <TableRow key={row.id} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
               {columns.map((column) => (
                 <TableCell key={column}>
-                  {formatCellValue(row[column], column)}
+                  {column === 'actions' ? (
+                    <Tooltip title="Delete">
+                      <IconButton onClick={() => handleDelete(row.id)} aria-label="delete">
+                        <DeleteIcon />
+                      </IconButton>
+                    </Tooltip>
+                  ) : (
+                    formatCellValue(row[column], column)
+                  )}
                 </TableCell>
               ))}
             </TableRow>
