@@ -200,11 +200,24 @@ const DynamicFieldsManager = ({ user }) => {
   const handleSaveField = useCallback(async (index) => {
     if (!user?.uid) return;
     const field = fields[index];
+    
+    // Validate field data before saving
+    if (!isValidField(field)) {
+      console.error('Invalid field data:', field);
+      // You might want to show an error message to the user here
+      return;
+    }
+
     try {
-      await (field.id ? updateDynamicField : addDynamicField)(user.uid, field.id, field);
+      if (field.id) {
+        await updateDynamicField(user.uid, field.id, field);
+      } else {
+        await addDynamicField(user.uid, field);
+      }
       loadFields();
     } catch (error) {
       console.error('Error saving field:', error);
+      // You might want to show an error message to the user here
     }
   }, [fields, user?.uid, loadFields]);
 
@@ -251,6 +264,64 @@ const DynamicFieldsManager = ({ user }) => {
       </Button>
     </Box>
   );
+};
+
+// Helper function to validate field data
+const isValidField = (field) => {
+  const requiredFields = ['title', 'label', 'type', 'order'];
+  for (const key of requiredFields) {
+    if (!field[key] && field[key] !== 0) {
+      console.error(`Missing required field: ${key}`);
+      return false;
+    }
+  }
+
+  // Ensure order is a number
+  field.order = Number(field.order);
+  if (isNaN(field.order)) {
+    console.error('Order must be a number');
+    return false;
+  }
+
+  // Additional type-specific validations
+  switch (field.type) {
+    case 'select':
+      if (!Array.isArray(field.values)) {
+        console.error('Select field values must be an array');
+        return false;
+      }
+      if (field.values.length === 0) {
+        console.error('Select field must have at least one value');
+        return false;
+      }
+      break;
+    case 'slider':
+      field.minimum = Number(field.minimum);
+      field.maximum = Number(field.maximum);
+      if (isNaN(field.minimum) || isNaN(field.maximum)) {
+        console.error('Slider minimum and maximum must be numbers');
+        return false;
+      }
+      if (field.minimum >= field.maximum) {
+        console.error('Slider minimum must be less than maximum');
+        return false;
+      }
+      break;
+    case 'boolean':
+      if (typeof field.pointColor !== 'string' || typeof field.pointStyle !== 'string') {
+        console.error('Boolean field must have valid pointColor and pointStyle');
+        return false;
+      }
+      break;
+    case 'text':
+      // No additional validation needed for text fields
+      break;
+    default:
+      console.error(`Unknown field type: ${field.type}`);
+      return false;
+  }
+
+  return true;
 };
 
 export default React.memo(DynamicFieldsManager);
