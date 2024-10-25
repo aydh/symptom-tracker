@@ -1,6 +1,6 @@
 import { db } from '../firebase';
 import { 
-  collection, query, where, getDocs, orderBy, limit, 
+  collection, query, where, getDocs, limit, 
   addDoc, updateDoc, doc, deleteDoc, getDoc 
 } from 'firebase/firestore';
 
@@ -69,7 +69,6 @@ export const fetchSymptoms = async (userId, maxResults = 100) => {
     const q = query(
       collection(db, COLLECTION_NAME),
       where("userId", "==", userId),
-      orderBy("symptomDate", "desc"),
       limit(maxResults)
     );
 
