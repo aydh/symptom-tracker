@@ -1,7 +1,7 @@
 import { db } from '../firebase';
 import { 
   collection, query, where, getDocs, orderBy, limit, 
-  addDoc, serverTimestamp, updateDoc, doc, deleteDoc, getDoc 
+  addDoc, updateDoc, doc, deleteDoc, getDoc 
 } from 'firebase/firestore';
 
 const CACHE_KEY = 'dynamicFieldsCache';
@@ -25,6 +25,16 @@ const setCache = (userId, data) => {
   }
 };
 
+
+export const clearCache = (userId) => {
+  validateUserId(userId);
+  localStorage.removeItem(`${CACHE_KEY}_${userId}`);
+};
+
+export const refreshCache = async (userId, maxResults = 100) => {
+  validateUserId(userId);
+  await fetchDynamicFields(userId, maxResults);
+};
 const validateUserId = (userId) => {
   if (!userId || typeof userId !== 'string') {
     throw new Error('Invalid or missing user ID');
@@ -66,8 +76,7 @@ export const fetchDynamicFields = async (userId, maxResults = 100) => {
     const querySnapshot = await getDocs(q);
     const fields = querySnapshot.docs.map(doc => ({
       id: doc.id,
-      ...doc.data(),
-      timestamp: doc.data().timestamp?.toDate?.() || new Date(doc.data().timestamp)
+      ...doc.data()
     }));
 
     setCache(userId, fields);
@@ -96,12 +105,11 @@ export const addDynamicField = async (userId, fieldData) => {
     const dynamicFieldsRef = collection(db, COLLECTION_NAME);
     const newFieldRef = await addDoc(dynamicFieldsRef, {
       ...fieldData,
-      userId,
-      timestamp: serverTimestamp()
+      userId
     });
 
     const cachedData = getCache(userId) || [];
-    const newField = { id: newFieldRef.id, ...fieldData, userId, timestamp: new Date() };
+    const newField = { id: newFieldRef.id, ...fieldData, userId };
     setCache(userId, [...cachedData, newField]);
     console.log(`addDynamicField: Added new field with ID ${newFieldRef.id}`);
 
@@ -135,8 +143,7 @@ export const updateDynamicField = async (userId, fieldId, updateData) => {
     }
 
     await updateDoc(fieldRef, {
-      ...updateData,
-      lastUpdated: serverTimestamp()
+      ...updateData
     });
 
     const cachedData = getCache(userId) || [];

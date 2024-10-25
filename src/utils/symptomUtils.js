@@ -1,7 +1,7 @@
 import { db } from '../firebase';
 import { 
   collection, query, where, getDocs, orderBy, limit, 
-  addDoc, serverTimestamp, updateDoc, doc, deleteDoc, getDoc 
+  addDoc, updateDoc, doc, deleteDoc, getDoc 
 } from 'firebase/firestore';
 
 const CACHE_KEY = 'symptomsCache';
@@ -23,6 +23,16 @@ const setCache = (userId, data) => {
   } catch (error) {
     console.error('Error writing to cache:', error);
   }
+};
+
+export const clearCache = (userId) => {
+  validateUserId(userId);
+  localStorage.removeItem(`${CACHE_KEY}_${userId}`);
+};
+
+export const refreshCache = async (userId, maxResults = 100) => {
+  validateUserId(userId);
+  await fetchSymptoms(userId, maxResults);
 };
 
 const validateUserId = (userId) => {
@@ -59,15 +69,14 @@ export const fetchSymptoms = async (userId, maxResults = 100) => {
     const q = query(
       collection(db, COLLECTION_NAME),
       where("userId", "==", userId),
-      orderBy("timestamp", "desc"),
+      orderBy("symptomDate", "desc"),
       limit(maxResults)
     );
 
     const querySnapshot = await getDocs(q);
     const symptoms = querySnapshot.docs.map(doc => ({
       id: doc.id,
-      ...doc.data(),
-      timestamp: doc.data().timestamp?.toDate?.() || new Date(doc.data().timestamp)
+      ...doc.data()
     }));
 
     setCache(userId, symptoms);
@@ -96,12 +105,11 @@ export const addSymptom = async (userId, symptomData) => {
     const symptomsRef = collection(db, COLLECTION_NAME);
     const newSymptomRef = await addDoc(symptomsRef, {
       ...symptomData,
-      userId,
-      timestamp: serverTimestamp()
+      userId
     });
 
     const cachedData = getCache(userId) || [];
-    const newSymptom = { id: newSymptomRef.id, ...symptomData, userId, timestamp: new Date() };
+    const newSymptom = { id: newSymptomRef.id, ...symptomData, userId };
     setCache(userId, [newSymptom, ...cachedData]);
     console.log(`addSymptom: Added new symptom with ID ${newSymptomRef.id}`);
 
@@ -135,13 +143,12 @@ export const updateSymptom = async (userId, symptomId, updateData) => {
     }
 
     await updateDoc(symptomRef, {
-      ...updateData,
-      lastUpdated: serverTimestamp()
+      ...updateData
     });
 
     const cachedData = getCache(userId) || [];
     const updatedSymptoms = cachedData.map(symptom => 
-      symptom.id === symptomId ? { ...symptom, ...updateData, lastUpdated: new Date() } : symptom
+      symptom.id === symptomId ? { ...symptom, ...updateData } : symptom
     );
     setCache(userId, updatedSymptoms);
     console.log(`updateSymptom: Updated symptom ${symptomId}`);
@@ -206,13 +213,10 @@ export const getSymptomById = async (userId, symptomId) => {
 
     return {
       id: symptomDoc.id,
-      ...symptomData,
-      timestamp: symptomData.timestamp?.toDate?.() || new Date(symptomData.timestamp)
+      ...symptomData
     };
   } catch (error) {
     console.error('Error fetching symptom by ID:', error);
     throw new Error('Failed to fetch symptom');
   }
 };
-
-// Add more utility functions as needed, e.g., updateSymptomEntry, deleteSymptomEntry, etc.

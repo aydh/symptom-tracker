@@ -45,10 +45,10 @@ const SymptomTable = ({ user }) => {
     fetchData();
   }, [fetchData]);
 
-  const columns = useMemo(() => ['timestamp', ...dynamicFields.map(field => field.title), 'actions'], [dynamicFields]);
+  const columns = useMemo(() => ['symptomDate', ...dynamicFields.map(field => field.title), 'actions'], [dynamicFields]);
 
   const formatCellValue = useCallback((value, column) => {
-    if (column === 'timestamp') {
+    if (column === 'symptomDate') {
       const date = value instanceof Date ? value : new Date(value);
       return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}`;
     }

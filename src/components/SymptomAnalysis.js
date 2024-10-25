@@ -173,7 +173,7 @@ const SymptomAnalysis = ({ user }) => {
 
     const sortedData = symptomData.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
     const labels = sortedData.map(entry => {
-      const date = new Date(entry.timestamp);
+      const date = new Date(entry.symptomDate);
       return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}`;
     });
 

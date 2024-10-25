@@ -57,7 +57,7 @@ function SymptomTracker({ user }) {
     try {
       const symptoms = await fetchSymptoms(user.uid);
       const matchingSymptom = symptoms.find(s => {
-        const symptomDate = parseTimestamp(s.timestamp);
+        const symptomDate = parseTimestamp(s.symptomDate);
         return symptomDate && isSameDay(symptomDate, date);
       });
 
@@ -94,7 +94,7 @@ function SymptomTracker({ user }) {
     setIsLoading(true);
     try {
       const symptomData = {
-        timestamp: startOfDay(selectedDate),
+        symptomDate: startOfDay(selectedDate),
         ...newValues
       };
 
