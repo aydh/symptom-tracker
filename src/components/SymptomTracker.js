@@ -9,10 +9,11 @@ import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import enAU from 'date-fns/locale/en-AU';
-import { fetchDynamicFields } from '../utils/dynamicFieldsUtil';
+import { fetchDynamicFields } from '../utils/dynamicFieldsUtils';
 import { fetchSymptoms, addSymptom, updateSymptom } from '../utils/symptomUtils';
-import { startOfDay, endOfDay, isSameDay, parseISO, addDays, subDays } from 'date-fns';
+import { startOfDay, endOfDay, isSameDay, addDays, subDays } from 'date-fns';
 import { styled } from '@mui/material/styles';
+import { parseTimestamp } from '../utils/dateUtils';
 
 const ColouredBackIcon = styled(ArrowBackIosNewIcon)(({ theme }) => ({
   color: theme.palette.icon.main, // Using the color from the theme
@@ -41,14 +42,6 @@ function SymptomTracker({ user }) {
   useEffect(() => {
     getDynamicFields();
   }, [getDynamicFields]);
-
-  const parseTimestamp = useCallback((timestamp) => {
-    if (timestamp instanceof Date) return timestamp;
-    if (typeof timestamp === 'string') return parseISO(timestamp);
-    if (timestamp && typeof timestamp.toDate === 'function') return timestamp.toDate();
-    console.error('Invalid timestamp format:', timestamp);
-    return null;
-  }, []);
 
   const getEntryForDate = useCallback(async (date) => {
     if (!user.uid) return;
@@ -79,7 +72,7 @@ function SymptomTracker({ user }) {
     } finally {
       setIsLoading(false);
     }
-  }, [user.uid, dynamicFields, parseTimestamp]);
+  }, [user.uid, dynamicFields]);
 
   useEffect(() => {
     getEntryForDate(selectedDate);

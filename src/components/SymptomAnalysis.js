@@ -13,8 +13,9 @@ import {
   Filler
 } from 'chart.js';
 import annotationPlugin from 'chartjs-plugin-annotation';
-import { fetchDynamicFields } from '../utils/dynamicFieldsUtil';
+import { fetchDynamicFields } from '../utils/dynamicFieldsUtils';
 import { fetchSymptoms } from '../utils/symptomUtils';
+import { parseTimestamp, formatDateShort } from '../utils/dateUtils';
 
 // Register ChartJS components
 ChartJS.register(
@@ -171,10 +172,10 @@ const SymptomAnalysis = ({ user }) => {
   const prepareChartData = useMemo(() => {
     if (symptomData.length === 0 || dynamicFields.length === 0) return [];
 
-    const sortedData = symptomData.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    const sortedData = symptomData.sort((a, b) => parseTimestamp(a.timestamp) - parseTimestamp(b.timestamp));
     const labels = sortedData.map(entry => {
-      const date = new Date(entry.symptomDate);
-      return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+      const date = parseTimestamp(entry.symptomDate);
+      return date ? formatDateShort(date) : 'Invalid Date';
     });
 
     const calculateMovingAverage = (data, windowSize) => {

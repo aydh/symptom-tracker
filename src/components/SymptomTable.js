@@ -4,14 +4,14 @@ import {
   Typography, CircularProgress, IconButton, Tooltip, Box 
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { fetchDynamicFields } from '../utils/dynamicFieldsUtil';
+import { fetchDynamicFields } from '../utils/dynamicFieldsUtils';
 import { fetchSymptoms, deleteSymptom } from '../utils/symptomUtils';
 import { styled } from '@mui/material/styles';
+import { parseTimestamp, formatDateShort } from '../utils/dateUtils';
 
 const ColouredDeleteIcon = styled(DeleteIcon)(({ theme }) => ({
   color: theme.palette.icon.main, // Using the color from the theme
 }));
-
 
 const SymptomTable = ({ user }) => {
   const [symptomData, setSymptomData] = useState([]);
@@ -49,8 +49,8 @@ const SymptomTable = ({ user }) => {
 
   const formatCellValue = useCallback((value, column) => {
     if (column === 'symptomDate') {
-      const date = value instanceof Date ? value : new Date(value);
-      return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+      const date = parseTimestamp(value);
+      return date ? formatDateShort(date) : 'Invalid Date';
     }
     if (typeof value === 'boolean') { 
       return value ? 'Yes' : 'No';
@@ -92,7 +92,7 @@ const SymptomTable = ({ user }) => {
             {symptomData.map((row) => (
               <TableRow key={row.id} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
                 {columns.map((column) => (
-                  <TableCell key={column}>
+                   <TableCell key={column}>
                     {column === 'actions' ? (
                       <Tooltip title="Delete">
                         <IconButton onClick={() => handleDelete(row.id)} aria-label="delete">
