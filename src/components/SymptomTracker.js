@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { 
   TextField, Select, MenuItem, Box, Typography, Switch, 
   FormControlLabel, FormControl, InputLabel, IconButton,
-  CircularProgress
+  CircularProgress, Slider
 } from '@mui/material';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
@@ -14,6 +14,7 @@ import { fetchSymptoms, addSymptom, updateSymptom } from '../utils/symptomUtils'
 import { startOfDay, endOfDay, isSameDay, addDays, subDays } from 'date-fns';
 import { styled } from '@mui/material/styles';
 import { parseTimestamp } from '../utils/dateUtils';
+import { debounce } from 'lodash'; // Make sure to install lodash if you haven't already
 
 const ColouredBackIcon = styled(ArrowBackIosNewIcon)(({ theme }) => ({
   color: theme.palette.icon.main, // Using the color from the theme
@@ -29,10 +30,11 @@ function SymptomTracker({ user }) {
   const [dynamicFields, setDynamicFields] = useState([]);
   const [dynamicValues, setDynamicValues] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [localSliderValues, setLocalSliderValues] = useState({});
 
   const getDynamicFields = useCallback(async () => {
     try {
-      const fields = await fetchDynamicFields(user.uid);
+      const fields = await fetchDynamicFields(user.uid, 50, 'desc');
       setDynamicFields(fields);
     } catch (err) {
       console.error('Error fetching dynamic fields:', err);
@@ -84,7 +86,6 @@ function SymptomTracker({ user }) {
       return;
     }
 
-    setIsLoading(true);
     try {
       const symptomData = {
         symptomDate: startOfDay(selectedDate),
@@ -100,18 +101,21 @@ function SymptomTracker({ user }) {
       console.log('Symptom saved successfully');
     } catch (e) {
       console.error("Error saving symptom:", e);
-    } finally {
-      setIsLoading(false);
     }
   }, [user.uid, symptom, selectedDate]);
+
+  const debouncedSaveSymptom = useMemo(
+    () => debounce((newValues) => saveSymptom(newValues), 500),
+    [saveSymptom]
+  );
 
   const handleDynamicFieldChange = useCallback((fieldTitle, value) => {
     setDynamicValues(prev => {
       const newValues = { ...prev, [fieldTitle]: value };
-      saveSymptom(newValues);
+      debouncedSaveSymptom(newValues);
       return newValues;
     });
-  }, [saveSymptom]);
+  }, [debouncedSaveSymptom]);
 
   const handleDateChange = useCallback((newDate) => {
     const today = new Date();
@@ -133,13 +137,14 @@ function SymptomTracker({ user }) {
     });
   }, []);
 
-  const sortedDynamicFields = useMemo(() => {
-    return [...dynamicFields].sort((a, b) => {
-      const orderA = typeof a.order === 'number' ? a.order : parseInt(a.order) || 0;
-      const orderB = typeof b.order === 'number' ? b.order : parseInt(b.order) || 0;
-      return orderA - orderB;
-    });
-  }, [dynamicFields]);
+  const handleSliderChange = useCallback((fieldTitle, value) => {
+    setLocalSliderValues(prev => ({ ...prev, [fieldTitle]: value }));
+  }, []);
+
+  const handleSliderChangeCommitted = useCallback((fieldTitle, value) => {
+    handleDynamicFieldChange(fieldTitle, value);
+    setLocalSliderValues(prev => ({ ...prev, [fieldTitle]: undefined }));
+  }, [handleDynamicFieldChange]);
 
   const renderField = useCallback((field) => {
     switch (field.type) {
@@ -189,10 +194,51 @@ function SymptomTracker({ user }) {
             label={field.label}
           />
         );
+      case 'slider':
+        const minValue = Number(field.minimum);
+        const maxValue = Number(field.maximum);
+        const currentValue = localSliderValues[field.title] !== undefined
+          ? localSliderValues[field.title]
+          : (dynamicValues[field.title] !== undefined 
+            ? Number(dynamicValues[field.title]) 
+            : minValue);
+
+        if (isNaN(minValue) || isNaN(maxValue) || isNaN(currentValue)) {
+          console.error(`Invalid slider values for ${field.title}:`, { min: field.min, max: field.max, current: dynamicValues[field.title] });
+          return null;
+        }
+
+        return (
+          <Box key={field.id} sx={{ width: '100%', mt: 2, mb: 2 }}>
+            <Typography id={`${field.id}-label`} gutterBottom>
+              {field.label}
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Typography variant="body2" sx={{ minWidth: '30px', textAlign: 'right' }}>
+                {minValue}
+              </Typography>
+              <Slider
+                value={currentValue}
+                onChange={(_, newValue) => handleSliderChange(field.title, newValue)}
+                onChangeCommitted={(_, newValue) => handleSliderChangeCommitted(field.title, newValue)}
+                valueLabelDisplay="auto"
+                step={1}
+                marks
+                min={minValue}
+                max={maxValue}
+                aria-labelledby={`${field.id}-label`}
+                sx={{ flex: 1 }}
+              />
+              <Typography variant="body2" sx={{ minWidth: '30px', textAlign: 'left' }}>
+                {maxValue}
+              </Typography>
+            </Box>
+          </Box>
+        );
       default:
         return null;
     }
-  }, [dynamicValues, handleDynamicFieldChange]);
+  }, [dynamicValues, handleSliderChange, handleSliderChangeCommitted, localSliderValues, handleDynamicFieldChange]);
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={enAU}>
@@ -220,13 +266,12 @@ function SymptomTracker({ user }) {
             <ColouredForwardIcon />
           </IconButton>
         </Box>
-        {isLoading ? (
+        {isLoading && (
           <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
             <CircularProgress />
           </Box>
-        ) : (
-          sortedDynamicFields.map(renderField)
         )}
+        {!isLoading && dynamicFields.map(renderField)}
       </Box>
     </LocalizationProvider>
   );

@@ -1,114 +1,176 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { 
-  Box, Typography, Button, TextField, Select, MenuItem, 
-  FormControl, Switch, FormControlLabel, 
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, IconButton
+import React, { useState, useEffect, useCallback } from 'react';
+import { Box, Typography, Button, TextField, Select, MenuItem, 
+  FormControl, Switch, FormControlLabel, Card, CardContent, 
+  CardActions, Stack, IconButton, InputLabel, InputAdornment
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
 import { fetchDynamicFields, addDynamicField, updateDynamicField, deleteDynamicField } from '../utils/dynamicFieldsUtils';
-import { styled } from '@mui/material/styles';
+import { pointStyleLookup, renderPointStyle } from '../utils/flagStyleUtils';
 
-const ColouredDeleteIcon = styled(DeleteIcon)(({ theme }) => ({
-  color: theme.palette.icon.main, // Using the color from the theme
-}));
+const IconWrapper = ({ children, onClick }) => (
+  <IconButton onClick={onClick} size="small">
+    {children}
+  </IconButton>
+);
 
-const ColouredSaveIcon = styled(SaveIcon)(({ theme }) => ({
-    color: theme.palette.icon.main, // Using the color from the theme
-  }));
-  
-const FieldRow = React.memo(({ field, index, onInputChange, onSave, onDelete }) => {
+const FormField = React.memo(({ name, label, value, onChange, type = 'text', ...props }) => (
+  <TextField
+    name={name}
+    label={label}
+    value={value}
+    onChange={(e) => onChange(name, e.target.value)}
+    type={type}
+    fullWidth
+    margin="dense"
+    {...props}
+  />
+));
+
+const SelectField = React.memo(({ name, label, value, onChange, options }) => (
+  <FormControl fullWidth margin="dense">
+    <InputLabel>{label}</InputLabel>
+    <Select
+      name={name}
+      value={value}
+      onChange={(e) => onChange(name, e.target.value)}
+      label={label}
+    >
+      {options.map(({ value, label }) => (
+        <MenuItem key={value} value={value}>{label}</MenuItem>
+      ))}
+    </Select>
+  </FormControl>
+));
+
+const ColorSelector = React.memo(({ value, onChange, label }) => (
+  <TextField
+    label={label}
+    value={value}
+    onChange={(e) => onChange('pointColor', e.target.value)}
+    InputProps={{
+      endAdornment: (
+        <InputAdornment position="end">
+          <input
+            type="color"
+            value={value || '#000000'}
+            onChange={(e) => onChange('pointColor', e.target.value)}
+            style={{
+              width: '36px',
+              height: '36px',
+              border: 'none',
+              background: 'none',
+            }}
+          />
+        </InputAdornment>
+      ),
+    }}
+    fullWidth
+    margin="dense"
+  />
+));
+
+const BooleanFieldOptions = React.memo(({ field, index, onChange }) => (
+  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+    <Box flex={1} minWidth={150}>
+      <ColorSelector
+        value={field.pointColor}
+        onChange={onChange}
+        label="Point Color"
+      />
+    </Box>
+    <Box flex={1} minWidth={150}>
+      <SelectField
+        name="pointStyle"
+        label="Point Style"
+        value={field.pointStyle || ''}
+        onChange={onChange}
+        options={Object.keys(pointStyleLookup).map(style => ({
+          value: style,
+          label: (
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <svg width="16" height="16" viewBox="0 0 16 16" style={{ marginRight: 8 }}>
+                {renderPointStyle(style, field.pointColor || 'currentColor')}
+              </svg>
+              {style}
+            </Box>
+          )
+        }))}
+      />
+    </Box>
+  </Stack>
+));
+
+const FieldCard = React.memo(({ field, index, onInputChange, onSave, onDelete }) => {
   const handleChange = useCallback((name, value) => {
     onInputChange(index, name, value);
   }, [index, onInputChange]);
 
+  const fieldTypeOptions = [
+    { value: 'text', label: 'Text' },
+    { value: 'boolean', label: 'Boolean' },
+    { value: 'select', label: 'Select' },
+    { value: 'slider', label: 'Slider' }
+  ];
+
   return (
-    <TableRow>
-      <TableCell>
-        <TextField
-          name="title"
-          value={field.title}
-          onChange={(e) => handleChange('title', e.target.value)}
-          fullWidth
-        />
-      </TableCell>
-      <TableCell>
-        <TextField
-          name="label"
-          value={field.label}
-          onChange={(e) => handleChange('label', e.target.value)}
-          fullWidth
-        />
-      </TableCell>
-      <TableCell>
-        <FormControl fullWidth>
-          <Select
-            name="type"
-            value={field.type}
-            onChange={(e) => handleChange('type', e.target.value)}
-          >
-            <MenuItem value="text">Text</MenuItem>
-            <MenuItem value="boolean">Boolean</MenuItem>
-            <MenuItem value="select">Select</MenuItem>
-          </Select>
-        </FormControl>
-      </TableCell>
-      <TableCell>
-        <TextField
-          name="order"
-          type="number"
-          value={field.order}
-          onChange={(e) => handleChange('order', Number(e.target.value))}
-          fullWidth
-        />
-      </TableCell>
-      <TableCell>
-        {field.type === 'text' && (
-          <FormControlLabel
-            control={
-              <Switch 
-                name="multiline" 
-                checked={field.multiline} 
-                onChange={(e) => handleChange('multiline', e.target.checked)}
+    <Card sx={{ mb: 2 }}>
+      <CardContent>
+        <Stack spacing={1} direction={{ xs: 'column', sm: 'row' }} useFlexGap flexWrap="wrap">
+          <Box flex={1} minWidth={150}>
+            <FormField name="title" label="Title" value={field.title} onChange={handleChange} />
+          </Box>
+          <Box flex={2} minWidth={250}>
+            <FormField name="label" label="Label" value={field.label} onChange={handleChange} />
+          </Box>
+          <Box flex={1} minWidth={120}>
+            <SelectField name="type" label="Type" value={field.type} onChange={handleChange} options={fieldTypeOptions} />
+          </Box>
+          <Box flex={1} minWidth={80}>
+            <FormField name="order" label="Order" value={field.order} onChange={handleChange} type="number" />
+          </Box>
+          <Box flex={2}  minWidth={320}>
+            {field.type === 'text' && (
+              <FormControlLabel
+                control={
+                  <Switch 
+                    name="multiline" 
+                    checked={field.multiline} 
+                    onChange={(e) => handleChange('multiline', e.target.checked)}
+                  />
+                }
+                label="Multiline"
               />
-            }
-            label="Multiline"
-          />
-        )}
-        {field.type === 'boolean' && (
-          <>
-            <TextField
-              name="pointColor"
-              value={field.pointColor}
-              onChange={(e) => handleChange('pointColor', e.target.value)}
-              placeholder="Point Color"
-              fullWidth
-              sx={{ mb: 1 }}
-            />
-            <TextField
-              name="pointStyle"
-              value={field.pointStyle}
-              onChange={(e) => handleChange('pointStyle', e.target.value)}
-              placeholder="Point Style"
-              fullWidth
-            />
-          </>
-        )}
-        {field.type === 'select' && (
-          <TextField
-            name="values"
-            value={field.values.join(',')}
-            onChange={(e) => handleChange('values', e.target.value.split(','))}
-            placeholder="Values (comma-separated)"
-            fullWidth
-          />
-        )}
-      </TableCell>
-      <TableCell>
-        <IconButton onClick={() => onSave(index)}><ColouredSaveIcon /></IconButton>
-        {field.id && <IconButton onClick={() => onDelete(field.id)}><ColouredDeleteIcon /></IconButton>}
-      </TableCell>
-    </TableRow>
+            )}
+            {field.type === 'boolean' && (
+              <BooleanFieldOptions field={field} index={index} onChange={handleChange} />
+            )}
+            {field.type === 'select' && (
+              <FormField
+                name="values"
+                label="Values (comma-separated)"
+                value={field.values.join(',')}
+                onChange={(name, value) => handleChange(name, value.split(','))}
+              />
+            )}
+            {field.type === 'slider' && (
+              <Stack direction="row" spacing={1}>
+                <Box flex={1} minWidth={80}>
+                  <FormField name="minimum" label="Minimum" value={field.minimum} onChange={handleChange} />
+                </Box>
+                <Box flex={1} minWidth={80}>
+                  <FormField name="maximum" label="Maximum" value={field.maximum} onChange={handleChange} />
+                </Box>
+              </Stack>
+            )}
+          </Box>
+        </Stack>
+      </CardContent>
+      <CardActions>
+        <IconWrapper onClick={() => onSave(index)}><SaveIcon color="primary" /></IconWrapper>
+        {field.id && <IconWrapper onClick={() => onDelete(field.id)}><DeleteIcon color="primary" /></IconWrapper>}
+      </CardActions>
+    </Card>
   );
 });
 
@@ -116,10 +178,7 @@ const DynamicFieldsManager = ({ user }) => {
   const [fields, setFields] = useState([]);
 
   const loadFields = useCallback(async () => {
-    if (!user?.uid) {
-      console.error('No user ID available');
-      return;
-    }
+    if (!user?.uid) return;
     try {
       const fetchedFields = await fetchDynamicFields(user.uid);
       setFields(fetchedFields);
@@ -129,31 +188,20 @@ const DynamicFieldsManager = ({ user }) => {
   }, [user?.uid]);
 
   useEffect(() => {
-    if (user?.uid) {
-      loadFields();
-    }
+    if (user?.uid) loadFields();
   }, [user?.uid, loadFields]);
 
   const handleInputChange = useCallback((index, name, value) => {
-    setFields(prevFields => {
-      const newFields = [...prevFields];
-      newFields[index] = { ...newFields[index], [name]: value };
-      return newFields;
-    });
+    setFields(prevFields => prevFields.map((field, i) => 
+      i === index ? { ...field, [name]: value } : field
+    ));
   }, []);
 
   const handleSaveField = useCallback(async (index) => {
+    if (!user?.uid) return;
     const field = fields[index];
-    if (!user?.uid) {
-      console.error('No user ID available');
-      return;
-    }
     try {
-      if (field.id) {
-        await updateDynamicField(user.uid, field.id, field);
-      } else {
-        await addDynamicField(user.uid, field);
-      }
+      await (field.id ? updateDynamicField : addDynamicField)(user.uid, field.id, field);
       loadFields();
     } catch (error) {
       console.error('Error saving field:', error);
@@ -161,10 +209,7 @@ const DynamicFieldsManager = ({ user }) => {
   }, [fields, user?.uid, loadFields]);
 
   const handleDeleteField = useCallback(async (fieldId) => {
-    if (!user?.uid) {
-      console.error('No user ID available');
-      return;
-    }
+    if (!user?.uid) return;
     try {
       await deleteDynamicField(user.uid, fieldId);
       loadFields();
@@ -182,42 +227,25 @@ const DynamicFieldsManager = ({ user }) => {
       multiline: false,
       pointColor: '',
       pointStyle: '',
+      minimum: '',
+      maximum: '',
       values: []
     }]);
   }, []);
 
-  const tableHeaders = useMemo(() => [
-    'Title', 'Label', 'Type', 'Order', 'Additional Settings', 'Actions'
-  ], []);
-
   return (
     <Box sx={{ maxWidth: 1200, margin: 'auto', padding: 2 }}>
       <Typography variant="h4" gutterBottom>Configure</Typography>
-      
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              {tableHeaders.map(header => (
-                <TableCell key={header}>{header}</TableCell>
-              ))}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {fields.map((field, index) => (
-              <FieldRow 
-                key={field.id || `new-${index}`}
-                field={field}
-                index={index}
-                onInputChange={handleInputChange}
-                onSave={handleSaveField}
-                onDelete={handleDeleteField}
-              />
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-
+      {fields.map((field, index) => (
+        <FieldCard 
+          key={field.id || `new-${index}`}
+          field={field}
+          index={index}
+          onInputChange={handleInputChange}
+          onSave={handleSaveField}
+          onDelete={handleDeleteField}
+        />
+      ))}
       <Button variant="contained" onClick={handleAddNewRow} sx={{ mt: 2 }}>
         Add New Field
       </Button>

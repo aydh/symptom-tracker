@@ -7,7 +7,8 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { fetchDynamicFields } from '../utils/dynamicFieldsUtils';
 import { fetchSymptoms, deleteSymptom } from '../utils/symptomUtils';
 import { styled } from '@mui/material/styles';
-import { parseTimestamp, formatDateShort } from '../utils/dateUtils';
+import { parseTimestamp } from '../utils/dateUtils';
+import { format } from 'date-fns';
 
 const ColouredDeleteIcon = styled(DeleteIcon)(({ theme }) => ({
   color: theme.palette.icon.main, // Using the color from the theme
@@ -29,7 +30,7 @@ const SymptomTable = ({ user }) => {
     try {
       const [fields, data] = await Promise.all([
         fetchDynamicFields(user.uid),
-        fetchSymptoms(user.uid)
+        fetchSymptoms(user.uid, 50, 'desc')
       ]);
       setDynamicFields(fields);
       setSymptomData(data);
@@ -50,7 +51,7 @@ const SymptomTable = ({ user }) => {
   const formatCellValue = useCallback((value, column) => {
     if (column === 'symptomDate') {
       const date = parseTimestamp(value);
-      return date ? formatDateShort(date) : 'Invalid Date';
+      return date ? format(date, 'dd MMM') : 'Invalid Date';
     }
     if (typeof value === 'boolean') { 
       return value ? 'Yes' : 'No';
@@ -59,14 +60,12 @@ const SymptomTable = ({ user }) => {
   }, []);
 
   const handleDelete = useCallback(async (symptomId) => {
-    if (window.confirm('Are you sure you want to delete this symptom?')) {
-      try {
-        await deleteSymptom(user.uid, symptomId);
-        setSymptomData(prevData => prevData.filter(symptom => symptom.id !== symptomId));
-      } catch (err) {
-        console.error('Error deleting symptom:', err);
-        alert('Failed to delete symptom. Please try again.');
-      }
+    try {
+      await deleteSymptom(user.uid, symptomId);
+      setSymptomData(prevData => prevData.filter(symptom => symptom.id !== symptomId));
+    } catch (err) {
+      console.error('Error deleting symptom:', err);
+      alert('Failed to delete symptom. Please try again.');
     }
   }, [user?.uid]);
 

@@ -1,87 +1,59 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Box, Typography, CircularProgress, Stack, List, ListItem, ListItemIcon, ListItemText, Switch, FormControlLabel } from '@mui/material';
-import { Line } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-} from 'chart.js';
-import annotationPlugin from 'chartjs-plugin-annotation';
+import { Box, Typography, CircularProgress, Stack, List, ListItem, ListItemIcon, ListItemText, FormControlLabel, Switch } from '@mui/material';
 import { fetchDynamicFields } from '../utils/dynamicFieldsUtils';
 import { fetchSymptoms } from '../utils/symptomUtils';
-import { parseTimestamp, formatDateShort } from '../utils/dateUtils';
-
-// Register ChartJS components
-ChartJS.register(
-  CategoryScale,
+import { Line, Bar } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  TimeScale,
   LinearScale,
   PointElement,
   LineElement,
+  BarElement,
   Title,
   Tooltip,
   Legend,
   Filler,
-  annotationPlugin
+  CategoryScale
+} from 'chart.js';
+import annotationPlugin from 'chartjs-plugin-annotation';
+import { parseTimestamp } from '../utils/dateUtils';
+import { format, startOfWeek, addWeeks } from 'date-fns';
+import { enAU } from 'date-fns/locale';
+import 'chartjs-adapter-date-fns';
+import { renderPointStyle } from '../utils/flagStyleUtils';
+
+ChartJS.register(
+  TimeScale, LinearScale, PointElement, LineElement, BarElement,
+  CategoryScale, Title, Tooltip, Legend, Filler, annotationPlugin
 );
 
-// Memoized component for rendering boolean fields
-const BooleanFieldsList = React.memo(({ dynamicFields, toggledFields, onToggle }) => {
-  // Filter boolean fields once
-  const booleanFields = useMemo(() => 
-    dynamicFields.filter(field => field.type === 'boolean'),
-    [dynamicFields]
-  );
+const colorPalette = [
+  '#A8DADC', // Soft teal
+  '#457B9D', // Muted blue
+  '#F4A261', // Warm peach
+  '#E9C46A', // Light gold
+  '#81B29A', // Sage green
+  '#F1FAEE', // Very light mint
+  '#E76F51', // Soft coral
+  '#2A9D8F', // Calm turquoise
+  '#B5838D', // Dusty mauve
+  '#A5A58D', // Light olive
+];
+// Utility functions
+const generateColors = (count) => Array.from({ length: count }, (_, i) => colorPalette[i % colorPalette.length]);
 
-  // Memoize the point style rendering function
-  const renderPointStyle = useCallback((style, color) => {
-    const size = 16;
-    switch (style) {
-      case 'circle':
-        return <circle cx={size/2} cy={size/2} r={size/2} fill={color} />;
-      case 'cross':
-        return (
-          <g stroke={color} strokeWidth="2">
-            <line x1="0" y1="0" x2={size} y2={size} />
-            <line x1="0" y1={size} x2={size} y2="0" />
-          </g>
-        );
-      case 'crossRot':
-        return (
-          <g stroke={color} strokeWidth="2" transform={`rotate(45 ${size/2} ${size/2})`}>
-            <line x1="0" y1="0" x2={size} y2={size} />
-            <line x1="0" y1={size} x2={size} y2="0" />
-          </g>
-        );
-      case 'dash':
-        return <line x1="0" y1={size/2} x2={size} y2={size/2} stroke={color} strokeWidth="2" />;
-      case 'line':
-        return <line x1="0" y1={size/2} x2={size} y2={size/2} stroke={color} strokeWidth="2" />;
-      case 'rect':
-        return <rect width={size} height={size} fill={color} />;
-      case 'rectRounded':
-        return <rect width={size} height={size} rx="2" ry="2" fill={color} />;
-      case 'rectRot':
-        return <rect width={size} height={size} transform={`rotate(45 ${size/2} ${size/2})`} fill={color} />;
-      case 'star':
-        return (
-          <polygon 
-            points="8,0 10,6 16,6 11,10 13,16 8,12 3,16 5,10 0,6 6,6"
-            fill={color}
-          />
-        );
-      case 'triangle':
-        return <polygon points={`${size/2},0 ${size},${size} 0,${size}`} fill={color} />;
-      default:
-        return <circle cx={size/2} cy={size/2} r={size/2} fill={color} />;
-    }
-  }, []);
+const createColorMap = (fields, data) => {
+  return fields.reduce((acc, field) => {
+    const uniqueValues = [...new Set(data.map(entry => entry[field.title]))];
+    const colors = generateColors(uniqueValues.length);
+    acc[field.title] = Object.fromEntries(uniqueValues.map((value, index) => [value, colors[index]]));
+    return acc;
+  }, {});
+};
 
+// Components
+const BooleanFieldsList = React.memo(({ booleanFields, toggledFields, onToggle }) => {
   return (
     <Box sx={{ marginBottom: 2 }}>
       <List dense>
@@ -99,7 +71,7 @@ const BooleanFieldsList = React.memo(({ dynamicFields, toggledFields, onToggle }
             <FormControlLabel
               control={
                 <Switch
-                  checked={!!toggledFields[field.title]} // Ensure it's always a boolean
+                  checked={!!toggledFields[field.title]}
                   onChange={() => onToggle(field.title)}
                   name={field.title}
                 />
@@ -113,16 +85,20 @@ const BooleanFieldsList = React.memo(({ dynamicFields, toggledFields, onToggle }
   );
 });
 
-// Main SymptomAnalysis component
+const ChartContainer = React.memo(({ title, children }) => (
+  <Box sx={{ marginBottom: 4, width: '100%', height: 400 }}>
+    <Typography variant="h6" gutterBottom>{title}</Typography>
+    {children}
+  </Box>
+));
+
 const SymptomAnalysis = ({ user }) => {
   const [symptomData, setSymptomData] = useState([]);
   const [dynamicFields, setDynamicFields] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [toggledFields, setToggledFields] = useState({});
-  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Fetch data function
   const fetchData = useCallback(async () => {
     if (!user?.uid) {
       setError('No user found');
@@ -133,20 +109,14 @@ const SymptomAnalysis = ({ user }) => {
     try {
       const [fields, data] = await Promise.all([
         fetchDynamicFields(user.uid),
-        fetchSymptoms(user.uid)
+        fetchSymptoms(user.uid, 50, 'asc')
       ]);
       setDynamicFields(fields);
       setSymptomData(data);
-
-      // Initialize toggledFields here
-      const initialToggledState = fields.reduce((acc, field) => {
-        if (field.type === 'boolean') {
-          acc[field.title] = true;
-        }
+      setToggledFields(fields.reduce((acc, field) => {
+        if (field.type === 'boolean') acc[field.title] = true;
         return acc;
-      }, {});
-      setToggledFields(initialToggledState);
-      setIsInitialized(true);
+      }, {}));
     } catch (err) {
       console.error('Error fetching data:', err);
       setError('Error fetching symptom data');
@@ -155,169 +125,215 @@ const SymptomAnalysis = ({ user }) => {
     }
   }, [user?.uid]);
 
-  // Fetch data on component mount or when user changes
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Toggle field handler
   const handleToggle = useCallback((fieldTitle) => {
-    setToggledFields(prev => ({
-      ...prev,
-      [fieldTitle]: !prev[fieldTitle]
-    }));
+    setToggledFields(prev => ({ ...prev, [fieldTitle]: !prev[fieldTitle] }));
   }, []);
 
-  // Prepare chart data
+  const parsedSymptomData = useMemo(() => 
+    symptomData.map(entry => ({
+      ...entry,
+      parsedDate: parseTimestamp(entry.symptomDate)
+    })),
+    [symptomData]
+  );
+
+  const { booleanFields, selectFields, numericFields } = useMemo(() => ({
+    booleanFields: dynamicFields.filter(field => field.type === 'boolean'),
+    selectFields: dynamicFields.filter(field => field.type === 'select'),
+    numericFields: dynamicFields.filter(field => !['boolean', 'text', 'select'].includes(field.type))
+  }), [dynamicFields]);
+
+  const colorMaps = useMemo(() => createColorMap(selectFields, parsedSymptomData), [selectFields, parsedSymptomData]);
+
   const prepareChartData = useMemo(() => {
-    if (symptomData.length === 0 || dynamicFields.length === 0) return [];
+    if (parsedSymptomData.length === 0) return [];
 
-    const sortedData = symptomData.sort((a, b) => parseTimestamp(a.timestamp) - parseTimestamp(b.timestamp));
-    const labels = sortedData.map(entry => {
-      const date = parseTimestamp(entry.symptomDate);
-      return date ? formatDateShort(date) : 'Invalid Date';
-    });
+    return numericFields.map(field => {
+      const data = parsedSymptomData.map(entry => ({
+        x: entry.parsedDate,
+        y: entry[field.title]
+      }));
 
-    const calculateMovingAverage = (data, windowSize) => {
-      const result = [];
-      for (let i = 0; i < data.length; i++) {
-        if (i < windowSize - 1) {
-          result.push(null);
-        } else {
-          const windowSum = data.slice(i - windowSize + 1, i + 1).reduce((sum, val) => sum + (Number(val) || 0), 0);
-          result.push(windowSum / windowSize);
-        }
-      }
-      return result;
-    };
-
-    return dynamicFields
-      .filter(field => field.type !== 'boolean' && field.type !== 'text')
-      .map(field => {
-        const data = sortedData.map(entry => entry[field.title]);
-        const movingAverageData = calculateMovingAverage(data, 5);
-
-        const booleanAnnotations = dynamicFields
-          .filter(bField => bField.type === 'boolean' && toggledFields[bField.title])
-          .flatMap(bField => 
-            sortedData.map((entry, index) => ({
+      const booleanAnnotations = booleanFields
+        .filter(bField => toggledFields[bField.title])
+        .flatMap(bField => 
+          parsedSymptomData
+            .filter(entry => entry[bField.title])
+            .map(entry => ({
               type: 'point',
-              xValue: index,
+              xValue: entry.parsedDate,
               yValue: entry[field.title],
               backgroundColor: bField.pointColor || 'red',
               borderColor: bField.pointColor || 'red',
               borderWidth: 2,
               radius: 6,
-              pointStyle: ['circle', 'cross', 'crossRot', 'dash', 'line', 'rect', 'rectRounded', 'rectRot', 'star', 'triangle'].includes(bField.pointStyle) 
-                ? bField.pointStyle 
-                : 'star',
-              display: entry[bField.title] === true
+              pointStyle: bField.pointStyle || 'star'
             }))
-          );
+        );
 
-        return {
-          attribute: field.title,
-          labels,
-          datasets: [
-            {
-              label: `Daily ${field.title}`,
-              data,
-              borderColor: '#9900f6',
-              borderWidth: 1,
-              backgroundColor: 'rgb(153, 0, 246, 0.2)',
-              fill: true,
-              tension: 0.3,
-              pointRadius: 2
-            },
-            {
-              label: `5-Day Moving Average ${field.title}`,
-              data: movingAverageData,
-              borderColor: '#9900f6',
-              borderWidth: 1,
-              borderDash: [6, 6],
-              fill: false,
-              tension: 0.3,
-              pointRadius: 0
-            }
-          ],
-          options: {
-            plugins: {
-              annotation: {
-                annotations: booleanAnnotations
-              }
-            }
+      return {
+        attribute: field.title,
+        datasets: [{
+          label: field.title,
+          data,
+          borderColor: '#9900f6',
+          backgroundColor: 'rgba(153, 0, 246, 0.2)',
+          fill: true,
+          borderWidth: 1,
+          tension: 0.3,
+          pointRadius: 2
+        }],
+        options: {
+          plugins: {
+            annotation: { annotations: booleanAnnotations }
           }
-        };
-      });
-  }, [symptomData, dynamicFields, toggledFields]);
+        }
+      };
+    });
+  }, [parsedSymptomData, numericFields, booleanFields, toggledFields]);
+
+  const prepareWeeklyStackedData = useMemo(() => {
+    if (parsedSymptomData.length === 0 || selectFields.length === 0) return null;
+
+    const dateRange = parsedSymptomData.map(entry => entry.parsedDate);
+    const startDate = startOfWeek(new Date(Math.min(...dateRange)));
+    const endDate = new Date(Math.max(...dateRange));
+
+    const weeks = [];
+    let currentWeek = startDate;
+    while (currentWeek <= endDate) {
+      weeks.push(format(currentWeek, 'yyyy-MM-dd'));
+      currentWeek = addWeeks(currentWeek, 1);
+    }
+
+    return selectFields.map(field => {
+      const datasets = [...new Set(parsedSymptomData.map(entry => entry[field.title]))]
+        .filter(value => value !== undefined && value !== null && value !== '')
+        .map(value => ({
+          label: value,
+          data: weeks.map(weekStart => {
+            const weekEnd = addWeeks(new Date(weekStart), 1);
+            return parsedSymptomData.filter(entry => 
+              entry.parsedDate >= new Date(weekStart) && 
+              entry.parsedDate < weekEnd && 
+              entry[field.title] === value
+            ).length;
+          }),
+          backgroundColor: colorMaps[field.title][value],
+        }));
+
+      // Filter out weeks with no data
+      const weeksWithData = weeks.filter((_, index) => 
+        datasets.some(dataset => dataset.data[index] > 0)
+      );
+
+      return {
+        fieldTitle: field.title,
+        chartData: {
+          labels: weeksWithData.map(week => format(new Date(week), 'dd MMM yy')),
+          datasets: datasets.map(dataset => ({
+            ...dataset,
+            data: dataset.data.filter((_, index) => 
+              datasets.some(d => d.data[index] > 0)
+            ),
+          })),
+        }
+      };
+    });
+  }, [parsedSymptomData, selectFields, colorMaps]);
 
   if (loading) return <CircularProgress />;
   if (error) return <Typography color="error">{error}</Typography>;
   if (prepareChartData.length === 0) return <Typography>No symptom data available for analysis.</Typography>;
-  if (!isInitialized) return null; // Don't render anything until initialization is complete
 
   return (
     <Box sx={{ maxWidth: 1200, margin: 'auto', padding: 2 }}>
       <Typography variant="h4" gutterBottom>Analyse</Typography>
+      <Stack spacing={2} direction="column">
+        {prepareChartData.map((data, index) => (
+          data.datasets[0].data.length > 0 && (
+            <ChartContainer key={index} title={data.attribute}>
+              <Line 
+                data={{ datasets: data.datasets }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: { position: 'top' },
+                    title: { display: true, text: `${data.attribute} Over Time` },
+                    tooltip: {
+                      callbacks: {
+                        title: (context) => format(new Date(context[0].parsed.x), 'dd MMM', { locale: enAU }),
+                        afterBody: (context) => {
+                          const entry = parsedSymptomData[context[0].dataIndex];
+                          return booleanFields
+                            .filter(field => entry[field.title])
+                            .map(field => `${field.title}: Yes`);
+                        }
+                      }
+                    },
+                    annotation: { annotations: data.options?.plugins?.annotation?.annotations || [] }
+                  },
+                  scales: {
+                    x: {
+                      type: 'time',
+                      time: { unit: 'day', displayFormats: { day: 'dd MMM' } },
+                      title: { display: true, text: 'Date' },
+                      adapters: { date: { locale: enAU } },
+                    },
+                    y: {
+                      beginAtZero: true,
+                      title: { display: true, text: data.attribute },
+                      ticks: { callback: (value) => Math.floor(value) === value ? value : null }
+                    }
+                  }
+                }}
+              />
+            </ChartContainer>
+          )
+        ))}
+      </Stack>
       
       <BooleanFieldsList 
-        dynamicFields={dynamicFields} 
+        booleanFields={booleanFields}
         toggledFields={toggledFields} 
         onToggle={handleToggle}
       />
 
-      <Stack spacing={3} direction={{ xs: 'column', md: 'row' }} flexWrap="wrap">
-        {prepareChartData.map((data, index) => (
-          <Box key={index} sx={{ width: { xs: '100%', md: 'calc(50% - 12px)' }, marginBottom: 4 }}>
-            <Typography variant="h6" gutterBottom>{data.attribute} Trend</Typography>
-            <Line 
-              data={{
-                labels: data.labels,
-                datasets: data.datasets
-              }}
+      {prepareWeeklyStackedData?.map((fieldData, index) => (
+        fieldData.chartData.datasets.some(dataset => dataset.data.length > 0) && (
+          <ChartContainer key={index} title={fieldData.fieldTitle}>
+            <Bar
+              data={fieldData.chartData}
               options={{
+                maintainAspectRatio: false,
                 responsive: true,
-                plugins: {
-                  legend: { position: 'top' },
-                  title: {
-                    display: true,
-                    text: `${data.attribute} Over Time`
-                  },
-                  tooltip: {
-                    callbacks: {
-                      afterBody: (context) => {
-                        const dataIndex = context[0].dataIndex;
-                        const entry = symptomData[dataIndex];
-                        return dynamicFields
-                          .filter(field => field.type === 'boolean' && entry[field.title])
-                          .map(field => `${field.title}: Yes`);
-                      }
-                    }
-                  },
-                  annotation: {
-                    annotations: data.options?.plugins?.annotation?.annotations || []
+                scales: {
+                  x: { stacked: true, title: { display: true, text: 'Week Starting' } },
+                  y: { 
+                    stacked: true, 
+                    title: { display: true, text: 'Occurrences' },
+                    ticks: { stepSize: 1 }
                   }
                 },
-                scales: {
-                  y: {
-                    beginAtZero: true,
-                    ticks: {
-                      callback: function(value) {
-                        if (Math.floor(value) === value) {
-                          return value;
-                        }
-                      }
+                plugins: {
+                  title: { display: true, text: `Weekly Distribution of ${fieldData.fieldTitle}` },
+                  tooltip: {
+                    callbacks: {
+                      title: (context) => `Week of ${context[0].label}`,
+                      label: (context) => `${context.dataset.label}: ${context.parsed.y}`
                     }
                   }
                 }
               }}
             />
-          </Box>
-        ))}
-      </Stack>
+          </ChartContainer>
+        )
+      ))}
     </Box>
   );
 };
 
-// Export the memoized version of SymptomAnalysis
 export default React.memo(SymptomAnalysis);

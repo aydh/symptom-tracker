@@ -6,11 +6,18 @@ import {
 
 const CACHE_KEY = 'dynamicFieldsCache';
 const COLLECTION_NAME = 'dynamicFields';
+const CACHE_EXPIRATION = 60 * 60 * 1000; // 1 hour in milliseconds
 
 const getCache = (userId) => {
   try {
-    const cache = localStorage.getItem(`${CACHE_KEY}_${userId}`);
-    return cache ? JSON.parse(cache) : null;
+    const cacheItem = localStorage.getItem(`${CACHE_KEY}_${userId}`);
+    if (cacheItem) {
+      const { data, timestamp } = JSON.parse(cacheItem);
+      if (Date.now() - timestamp < CACHE_EXPIRATION) {
+        return data;
+      }
+    }
+    return null;
   } catch (error) {
     console.error('Error reading from cache:', error);
     return null;
@@ -19,7 +26,11 @@ const getCache = (userId) => {
 
 const setCache = (userId, data) => {
   try {
-    localStorage.setItem(`${CACHE_KEY}_${userId}`, JSON.stringify(data));
+    const cacheItem = {
+      data,
+      timestamp: Date.now()
+    };
+    localStorage.setItem(`${CACHE_KEY}_${userId}`, JSON.stringify(cacheItem));
   } catch (error) {
     console.error('Error writing to cache:', error);
   }

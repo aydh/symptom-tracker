@@ -16,12 +16,3 @@ export const parseTimestamp = (timestamp) => {
   console.error('Invalid timestamp format:', timestamp);
   return null;
 };
-
-/**
- * Formats a date as a string in the format "DD/MM".
- * @param {Date} date - The date to format.
- * @returns {string} The formatted date string.
- */
-export const formatDateShort = (date) => {
-  return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}`;
-};

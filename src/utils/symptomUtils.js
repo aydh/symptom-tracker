@@ -1,16 +1,21 @@
 import { db } from '../firebase';
-import { 
-  collection, query, where, getDocs, limit, 
-  addDoc, updateDoc, doc, deleteDoc, getDoc 
-} from 'firebase/firestore';
+import { collection, query, where, getDocs, limit, addDoc, updateDoc, doc, deleteDoc, getDoc, orderBy } from 'firebase/firestore';
+import { parseTimestamp } from './dateUtils'; // Assuming you have this utility function
 
 const CACHE_KEY = 'symptomsCache';
 const COLLECTION_NAME = 'symptoms';
+const CACHE_EXPIRATION = 60 * 60 * 1000; // 1 hour in milliseconds
 
 const getCache = (userId) => {
   try {
-    const cache = localStorage.getItem(`${CACHE_KEY}_${userId}`);
-    return cache ? JSON.parse(cache) : null;
+    const cacheItem = localStorage.getItem(`${CACHE_KEY}_${userId}`);
+    if (cacheItem) {
+      const { data, timestamp } = JSON.parse(cacheItem);
+      if (Date.now() - timestamp < CACHE_EXPIRATION) {
+        return data;
+      }
+    }
+    return null;
   } catch (error) {
     console.error('Error reading from cache:', error);
     return null;
@@ -19,7 +24,11 @@ const getCache = (userId) => {
 
 const setCache = (userId, data) => {
   try {
-    localStorage.setItem(`${CACHE_KEY}_${userId}`, JSON.stringify(data));
+    const cacheItem = {
+      data,
+      timestamp: Date.now()
+    };
+    localStorage.setItem(`${CACHE_KEY}_${userId}`, JSON.stringify(cacheItem));
   } catch (error) {
     console.error('Error writing to cache:', error);
   }
@@ -49,26 +58,31 @@ const validateSymptomData = (symptomData) => {
 };
 
 /**
- * Fetches symptoms for a given user ID.
+ * Fetches symptoms for a given user ID with sorting options.
  * @param {string} userId - The user ID to fetch symptoms for.
  * @param {number} [maxResults=100] - Maximum number of results to return.
+ * @param {string} [sortOrder='desc'] - Sort order: 'asc' for ascending, 'desc' for descending.
  * @returns {Promise<Array>} An array of symptom objects.
  * @throws {Error} If no user ID is provided or if there's an error fetching the data.
  */
-export const fetchSymptoms = async (userId, maxResults = 100) => {
+export const fetchSymptoms = async (userId, maxResults = 100, sortOrder = 'desc') => {
   validateUserId(userId);
+  if (sortOrder !== 'asc' && sortOrder !== 'desc') {
+    throw new Error('Invalid sort order. Use "asc" or "desc".');
+  }
 
   try {
     const cachedData = getCache(userId);
     if (cachedData) {
       console.log('fetchSymptoms: Using cached data');
-      return cachedData.slice(0, maxResults);
+      return sortSymptoms(cachedData, sortOrder).slice(0, maxResults);
     }
 
     console.log('fetchSymptoms: Fetching from database');
     const q = query(
       collection(db, COLLECTION_NAME),
       where("userId", "==", userId),
+      orderBy("symptomDate", sortOrder),
       limit(maxResults)
     );
 
@@ -89,7 +103,21 @@ export const fetchSymptoms = async (userId, maxResults = 100) => {
 };
 
 /**
- * Adds a new symptom for a user.
+ * Sorts an array of symptoms by symptomDate.
+ * @param {Array} symptoms - The array of symptoms to sort.
+ * @param {string} sortOrder - The sort order: 'asc' for ascending, 'desc' for descending.
+ * @returns {Array} The sorted array of symptoms.
+ */
+const sortSymptoms = (symptoms, sortOrder) => {
+  return symptoms.sort((a, b) => {
+    const dateA = parseTimestamp(a.symptomDate);
+    const dateB = parseTimestamp(b.symptomDate);
+    return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+  });
+};
+
+/**
+ * Adds a new symptom for a user and maintains sorted cache.
  * @param {string} userId - The user ID to add the symptom for.
  * @param {Object} symptomData - The symptom data to add.
  * @returns {Promise<string>} The ID of the newly added symptom document.
@@ -107,9 +135,10 @@ export const addSymptom = async (userId, symptomData) => {
       userId
     });
 
-    const cachedData = getCache(userId) || [];
     const newSymptom = { id: newSymptomRef.id, ...symptomData, userId };
-    setCache(userId, [newSymptom, ...cachedData]);
+    const cachedData = getCache(userId) || [];
+    const updatedCache = sortSymptoms([newSymptom, ...cachedData], 'desc');
+    setCache(userId, updatedCache);
     console.log(`addSymptom: Added new symptom with ID ${newSymptomRef.id}`);
 
     return newSymptomRef.id;
@@ -120,7 +149,7 @@ export const addSymptom = async (userId, symptomData) => {
 };
 
 /**
- * Updates an existing symptom.
+ * Updates an existing symptom and maintains sorted cache.
  * @param {string} userId - The user ID to update the symptom for.
  * @param {string} symptomId - The ID of the symptom to update.
  * @param {Object} updateData - The data to update the symptom with.
@@ -141,15 +170,14 @@ export const updateSymptom = async (userId, symptomId, updateData) => {
       throw new Error('Symptom not found or user does not have permission to update');
     }
 
-    await updateDoc(symptomRef, {
-      ...updateData
-    });
+    await updateDoc(symptomRef, updateData);
 
     const cachedData = getCache(userId) || [];
     const updatedSymptoms = cachedData.map(symptom => 
       symptom.id === symptomId ? { ...symptom, ...updateData } : symptom
     );
-    setCache(userId, updatedSymptoms);
+    const sortedSymptoms = sortSymptoms(updatedSymptoms, 'desc');
+    setCache(userId, sortedSymptoms);
     console.log(`updateSymptom: Updated symptom ${symptomId}`);
   } catch (error) {
     console.error('Error updating symptom:', error);
