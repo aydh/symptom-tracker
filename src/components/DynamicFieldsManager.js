@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Typography, Button, TextField, Select, MenuItem, 
   FormControl, Switch, FormControlLabel, Card, CardContent, 
-  CardActions, Stack, IconButton, InputLabel, InputAdornment
+  CardActions, Stack, IconButton, InputLabel, InputAdornment,
+  ListItem
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
@@ -76,13 +77,13 @@ const BooleanFieldOptions = React.memo(({ field, index, onChange }) => (
       <ColorSelector
         value={field.pointColor}
         onChange={onChange}
-        label="Point Color"
+        label="Graph Point Color"
       />
     </Box>
     <Box flex={1} minWidth={150}>
       <SelectField
         name="pointStyle"
-        label="Point Style"
+        label="Graph Point Style"
         value={field.pointStyle || ''}
         onChange={onChange}
         options={Object.keys(pointStyleLookup).map(style => ({
@@ -107,10 +108,10 @@ const FieldCard = React.memo(({ field, index, onInputChange, onSave, onDelete })
   }, [index, onInputChange]);
 
   const fieldTypeOptions = [
-    { value: 'text', label: 'Text' },
-    { value: 'boolean', label: 'Boolean' },
+    { value: 'slider', label: 'Rating' },
+    { value: 'boolean', label: 'Flag' },
     { value: 'select', label: 'Select' },
-    { value: 'slider', label: 'Slider' }
+    { value: 'text', label: 'Text' },
   ];
 
   return (
@@ -118,16 +119,16 @@ const FieldCard = React.memo(({ field, index, onInputChange, onSave, onDelete })
       <CardContent>
         <Stack spacing={1} direction={{ xs: 'column', sm: 'row' }} useFlexGap flexWrap="wrap">
           <Box flex={1} minWidth={150}>
-            <FormField name="title" label="Title" value={field.title} onChange={handleChange} />
+            <FormField name="title" label="Question Name" value={field.title} onChange={handleChange} />
           </Box>
           <Box flex={2} minWidth={250}>
-            <FormField name="label" label="Label" value={field.label} onChange={handleChange} />
+            <FormField name="label" label="Question Text" value={field.label} onChange={handleChange} />
           </Box>
           <Box flex={1} minWidth={120}>
-            <SelectField name="type" label="Type" value={field.type} onChange={handleChange} options={fieldTypeOptions} />
+            <SelectField name="type" label="Question Type" value={field.type} onChange={handleChange} options={fieldTypeOptions} />
           </Box>
           <Box flex={1} minWidth={80}>
-            <FormField name="order" label="Order" value={field.order} onChange={handleChange} type="number" />
+            <FormField name="order" label="Display Order" value={field.order} onChange={handleChange} type="number" />
           </Box>
           <Box flex={2}  minWidth={320}>
             {field.type === 'text' && (
@@ -148,7 +149,7 @@ const FieldCard = React.memo(({ field, index, onInputChange, onSave, onDelete })
             {field.type === 'select' && (
               <FormField
                 name="values"
-                label="Values (comma-separated)"
+                label="Dropdown Options (comma-separated)"
                 value={field.values.join(',')}
                 onChange={(name, value) => handleChange(name, value.split(','))}
               />
@@ -156,10 +157,10 @@ const FieldCard = React.memo(({ field, index, onInputChange, onSave, onDelete })
             {field.type === 'slider' && (
               <Stack direction="row" spacing={1}>
                 <Box flex={1} minWidth={80}>
-                  <FormField name="minimum" label="Minimum" value={field.minimum} onChange={handleChange} />
+                  <FormField name="minimum" label="Rating Minimum Value" value={field.minimum} onChange={handleChange} />
                 </Box>
                 <Box flex={1} minWidth={80}>
-                  <FormField name="maximum" label="Maximum" value={field.maximum} onChange={handleChange} />
+                  <FormField name="maximum" label="Rating Maximum Value" value={field.maximum} onChange={handleChange} />
                 </Box>
               </Stack>
             )}
@@ -235,7 +236,7 @@ const DynamicFieldsManager = ({ user }) => {
     setFields(prevFields => [...prevFields, {
       title: '',
       label: '',
-      type: 'text',
+      type: 'slider',
       order: '',
       multiline: false,
       pointColor: '',
@@ -248,7 +249,22 @@ const DynamicFieldsManager = ({ user }) => {
 
   return (
     <Box sx={{ maxWidth: 1200, margin: 'auto', padding: 2 }}>
-      <Typography variant="h4" gutterBottom>Configure</Typography>
+      <Typography variant="h4" gutterBottom>Configure Symptom Questions</Typography>
+      <Typography variant="body1">
+        Add symptom questions here. There are four types:
+        <ListItem sx={{ display: "list-item"}}>
+          <b>Text:</b> For recording general text - use it for comments - optionally choose multilines.
+        </ListItem>
+        <ListItem sx={{ display: "list-item"}}>
+          <b>Flag:</b> For recording simple Yes/No questions - you need to configure a colour and point style to display on the analysis graphs.
+        </ListItem>
+        <ListItem sx={{ display: "list-item"}}>
+          <b>Dropdown:</b> For categories to select from a dropdown - you need to configure a comma seperated list.
+        </ListItem>
+        <ListItem sx={{ display: "list-item"}}>
+          <b>Rating:</b> For scoring - you need to configure a minimum and maximum.  It will display as a slider.
+        </ListItem>
+      </Typography>
       {fields.map((field, index) => (
         <FieldCard 
           key={field.id || `new-${index}`}
@@ -260,7 +276,7 @@ const DynamicFieldsManager = ({ user }) => {
         />
       ))}
       <Button variant="contained" onClick={handleAddNewRow} sx={{ mt: 2 }}>
-        Add New Field
+        Add New Question
       </Button>
     </Box>
   );

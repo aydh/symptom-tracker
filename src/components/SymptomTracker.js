@@ -4,6 +4,7 @@ import {
   FormControlLabel, FormControl, InputLabel, IconButton,
   CircularProgress, Slider
 } from '@mui/material';
+import { Link } from 'react-router-dom';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
@@ -243,7 +244,16 @@ function SymptomTracker({ user }) {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={enAU}>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxWidth: 400, margin: 'auto', padding: 2 }}>
-        <Typography variant="h4" gutterBottom>Track</Typography>
+        <Typography variant="h4" gutterBottom>Symptom Tracking</Typography>
+          {dynamicFields.length === 0 && (
+          <Typography variant="body1" color="error" sx={{ backgroundColor: '#ffebee', padding: 2, borderRadius: 4 }}>
+            First, configure some 
+            <Link to="/config" style={{ marginLeft: '4px', textDecoration: 'underline', color: 'blue' }}>
+              questions
+            </Link>
+            .
+        </Typography>
+        )}
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <IconButton onClick={handlePreviousDay} aria-label="previous day" disabled={isLoading}>
             <ColouredBackIcon />

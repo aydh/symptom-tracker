@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Box, Typography, CircularProgress, Stack, List, ListItem, ListItemIcon, ListItemText, FormControlLabel, Switch } from '@mui/material';
+import { Link } from 'react-router-dom';
 import { fetchDynamicFields } from '../utils/dynamicFieldsUtils';
 import { fetchSymptoms } from '../utils/symptomUtils';
 import { Line, Bar } from 'react-chartjs-2';
@@ -246,11 +247,21 @@ const SymptomAnalysis = ({ user }) => {
 
   if (loading) return <CircularProgress />;
   if (error) return <Typography color="error">{error}</Typography>;
-  if (prepareChartData.length === 0) return <Typography>No symptom data available for analysis.</Typography>;
-
+  if (prepareChartData.length === 0) return (
+    <Box sx={{ maxWidth: 1200, margin: 'auto', padding: 2 }}>
+      <Typography variant="h4" gutterBottom>Symptom Analysis</Typography>
+      <Typography variant="body1" color="error" sx={{ backgroundColor: '#ffebee', padding: 2, borderRadius: 4 }}>
+        No symptoms available to analyse. Go to  
+        <Link to="/track" style={{ marginLeft: '4px', textDecoration: 'underline', color: 'blue' }}>
+          tracking
+        </Link>
+        .
+      </Typography>
+    </Box>
+  );
   return (
     <Box sx={{ maxWidth: 1200, margin: 'auto', padding: 2 }}>
-      <Typography variant="h4" gutterBottom>Analyse</Typography>
+      <Typography variant="h4" gutterBottom>Symptom Analysis</Typography>
       <Stack spacing={2} direction="column">
         {prepareChartData.map((data, index) => (
           data.datasets[0].data.length > 0 && (

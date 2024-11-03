@@ -58,32 +58,63 @@ const validateSymptomData = (symptomData) => {
 };
 
 /**
- * Fetches symptoms for a given user ID with sorting options.
+ * Fetches symptoms for a given user ID with sorting options and optional date range.
  * @param {string} userId - The user ID to fetch symptoms for.
  * @param {number} [maxResults=100] - Maximum number of results to return.
  * @param {string} [sortOrder='desc'] - Sort order: 'asc' for ascending, 'desc' for descending.
+ * @param {Date} [startDate=null] - Optional start date to filter symptoms
+ * @param {Date} [endDate=null] - Optional end date to filter symptoms
  * @returns {Promise<Array>} An array of symptom objects.
  * @throws {Error} If no user ID is provided or if there's an error fetching the data.
  */
-export const fetchSymptoms = async (userId, maxResults = 100, sortOrder = 'desc') => {
+export const fetchSymptoms = async (userId, maxResults = 100, sortOrder = 'desc', startDate = null, endDate = null) => {
   validateUserId(userId);
   if (sortOrder !== 'asc' && sortOrder !== 'desc') {
     throw new Error('Invalid sort order. Use "asc" or "desc".');
   }
 
   try {
+    // If we have a date range, create a specific cache key
+    const hasDateRange = startDate instanceof Date && endDate instanceof Date;
+    const cacheKey = hasDateRange ? 
+      `${CACHE_KEY}_${userId}_${startDate.getTime()}_${endDate.getTime()}` : 
+      `${CACHE_KEY}_${userId}`;
+
+    // Check cache with appropriate key
     const cachedData = getCache(userId);
     if (cachedData) {
       console.log('fetchSymptoms: Using cached data');
+      if (hasDateRange) {
+        // Filter cached data by date range
+        const filteredData = cachedData.filter(symptom => {
+          const symptomDate = parseTimestamp(symptom.symptomDate);
+          return symptomDate >= startDate && symptomDate <= endDate;
+        });
+        return sortSymptoms(filteredData, sortOrder).slice(0, maxResults);
+      }
       return sortSymptoms(cachedData, sortOrder).slice(0, maxResults);
     }
 
     console.log('fetchSymptoms: Fetching from database');
+    let queryConstraints = [
+      where("userId", "==", userId),
+      orderBy("symptomDate", sortOrder)
+    ];
+
+    // Add date range constraints if provided
+    if (hasDateRange) {
+      queryConstraints.push(where("symptomDate", ">=", startDate));
+      queryConstraints.push(where("symptomDate", "<=", endDate));
+    }
+
+    // Add limit constraint
+    if (maxResults > 0) {
+      queryConstraints.push(limit(maxResults));
+    }
+
     const q = query(
       collection(db, COLLECTION_NAME),
-      where("userId", "==", userId),
-      orderBy("symptomDate", sortOrder),
-      limit(maxResults)
+      ...queryConstraints
     );
 
     const querySnapshot = await getDocs(q);
@@ -92,7 +123,16 @@ export const fetchSymptoms = async (userId, maxResults = 100, sortOrder = 'desc'
       ...doc.data()
     }));
 
-    setCache(userId, symptoms);
+    // Cache the results with appropriate key
+    if (hasDateRange) {
+      localStorage.setItem(cacheKey, JSON.stringify({
+        data: symptoms,
+        timestamp: Date.now()
+      }));
+    } else {
+      setCache(userId, symptoms);
+    }
+
     console.log(`fetchSymptoms: Fetched and cached ${symptoms.length} symptoms`);
 
     return symptoms;

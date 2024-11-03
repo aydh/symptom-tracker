@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, 
-  Typography, CircularProgress, IconButton, Tooltip, Box 
+  Typography, CircularProgress, IconButton, Tooltip, Box
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { fetchDynamicFields } from '../utils/dynamicFieldsUtils';
@@ -71,11 +72,22 @@ const SymptomTable = ({ user }) => {
 
   if (loading) return <CircularProgress />;
   if (error) return <Typography color="error">{error}</Typography>;
-  if (symptomData.length === 0) return <Typography>No symptom data available.</Typography>;
+  if (symptomData.length === 0) return (
+    <Box sx={{ maxWidth: 1200, margin: 'auto', padding: 2 }}>
+      <Typography variant="h4" gutterBottom>Symptom History</Typography>
+      <Typography variant="body1" color="error" sx={{ backgroundColor: '#ffebee', padding: 2, borderRadius: 4 }}>
+        No symptom history available. Go to  
+        <Link to="/track" style={{ marginLeft: '4px', textDecoration: 'underline', color: 'blue' }}>
+          tracking
+        </Link>
+        .
+      </Typography>
+    </Box>
+  );
 
   return (
     <Box sx={{ maxWidth: 1200, margin: 'auto', padding: 2 }}>
-      <Typography variant="h4" gutterBottom>Table</Typography>
+      <Typography variant="h4" gutterBottom>Symptom History</Typography>
       <TableContainer component={Paper} sx={{ maxWidth: 1200, margin: 'auto', marginTop: 2 }}>
         <Table sx={{ minWidth: 650 }} aria-label="symptom data table">
           <TableHead>

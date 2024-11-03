@@ -76,8 +76,8 @@ function App() {
   const navItems = useMemo(() => [
     { text: 'Track', path: '/track' },
     { text: 'Analyse', path: '/analyse' },
-    { text: 'Table', path: '/table' },
-    { text: 'Configure', path: '/config' },
+    { text: 'History', path: '/table' },
+    { text: 'Questions', path: '/config' },
     { text: 'Refresh', action: clearCacheAndRefresh },
   ], []);
 
