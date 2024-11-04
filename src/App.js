@@ -16,6 +16,9 @@ import { clearCache } from './utils/cacheUtils';  // Import the clearCache funct
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import theme from './theme';
+import { LocalizationProvider } from '@mui/x-date-pickers';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { enAU } from 'date-fns/locale';
 
 const typographySx = { flexGrow: 1 };
 const userEmailSx = { marginRight: 1 };
@@ -153,26 +156,28 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
+      <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={enAU}>
       <Router>
-        <Box sx={{ flexGrow: 1 }}>
-          <AppBar position="static">
-            <Toolbar>
-              <Typography variant="h6" component="div" sx={typographySx}>
-                Symptom Tracker
-              </Typography>
-              {navButtons}
-            </Toolbar>
-          </AppBar>
-          <Drawer
-            anchor="left"
-            open={drawerOpen}
-            onClose={toggleDrawer(false)}
-          >
-            {navList}
-          </Drawer>
-          <Routes>{routes}</Routes>
-        </Box>
-      </Router>
+          <Box sx={{ flexGrow: 1 }}>
+            <AppBar position="static">
+              <Toolbar>
+                <Typography variant="h6" component="div" sx={typographySx}>
+                  Symptom Tracker
+                </Typography>
+                {navButtons}
+              </Toolbar>
+            </AppBar>
+            <Drawer
+              anchor="left"
+              open={drawerOpen}
+              onClose={toggleDrawer(false)}
+            >
+              {navList}
+            </Drawer>
+            <Routes>{routes}</Routes>
+          </Box>
+        </Router>
+      </LocalizationProvider>
     </ThemeProvider>
   );
 }
