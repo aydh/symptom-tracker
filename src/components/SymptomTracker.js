@@ -5,11 +5,9 @@ import {
   CircularProgress, Slider
 } from '@mui/material';
 import { Link } from 'react-router-dom';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
+import { DatePicker } from '@mui/x-date-pickers'; // Import DatePicker
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
-import enAU from 'date-fns/locale/en-AU';
 import { fetchDynamicFields } from '../utils/dynamicFieldsUtils';
 import { fetchSymptoms, addSymptom, updateSymptom } from '../utils/symptomUtils';
 import { startOfDay, endOfDay, isSameDay, addDays, subDays } from 'date-fns';
@@ -242,48 +240,43 @@ function SymptomTracker({ user }) {
   }, [dynamicValues, handleSliderChange, handleSliderChangeCommitted, localSliderValues, handleDynamicFieldChange]);
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={enAU}>
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxWidth: 400, margin: 'auto', padding: 2 }}>
-        <Typography variant="h4" gutterBottom>Symptom Tracking</Typography>
-          {dynamicFields.length === 0 && (
-          <Typography variant="body1" color="error" sx={{ backgroundColor: '#ffebee', padding: 2, borderRadius: 4 }}>
-            First, configure some 
-            <Link to="/config" style={{ marginLeft: '4px', textDecoration: 'underline', color: 'blue' }}>
-              questions
-            </Link>
-            .
-        </Typography>
-        )}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <IconButton onClick={handlePreviousDay} aria-label="previous day" disabled={isLoading}>
-            <ColouredBackIcon />
-          </IconButton>
-          <DatePicker
-            label="Select Date"
-            value={selectedDate}
-            onChange={handleDateChange}
-            maxDate={new Date()}
-            slotProps={{ textField: { sx: { width: '60%' } } }}
-            slots={{
-              textField: (params) => <TextField {...params} />
-            }}
-          />
-          <IconButton 
-            onClick={handleNextDay} 
-            aria-label="next day"
-            disabled={isLoading || isSameDay(selectedDate, new Date())}
-          >
-            <ColouredForwardIcon />
-          </IconButton>
-        </Box>
-        {isLoading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
-            <CircularProgress />
-          </Box>
-        )}
-        {!isLoading && dynamicFields.map(renderField)}
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxWidth: 400, margin: 'auto', padding: 2 }}>
+      <Typography variant="h4" gutterBottom>Symptom Tracking</Typography>
+        {dynamicFields.length === 0 && (
+        <Typography variant="body1" color="error" sx={{ backgroundColor: '#ffebee', padding: 2, borderRadius: 4 }}>
+          First, configure some 
+          <Link to="/config" style={{ marginLeft: '4px', textDecoration: 'underline', color: 'blue' }}>
+            questions
+          </Link>
+          .
+      </Typography>
+      )}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <IconButton onClick={handlePreviousDay} aria-label="previous day" disabled={isLoading}>
+          <ColouredBackIcon />
+        </IconButton>
+        <DatePicker
+          label="Select Date"
+          value={selectedDate}
+          onChange={handleDateChange}
+          maxDate={new Date()}
+          renderInput={(params) => <TextField {...params} fullWidth sx={{ width: '60%' }} />}
+        />
+        <IconButton 
+          onClick={handleNextDay} 
+          aria-label="next day"
+          disabled={isLoading || isSameDay(selectedDate, new Date())}
+        >
+          <ColouredForwardIcon />
+        </IconButton>
       </Box>
-    </LocalizationProvider>
+      {isLoading && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
+          <CircularProgress />
+        </Box>
+      )}
+      {!isLoading && dynamicFields.map(renderField)}
+    </Box>
   );
 }
 
