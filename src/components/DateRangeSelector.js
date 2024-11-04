@@ -7,6 +7,7 @@ const DateRangeSelector = ({ startDate, endDate, onDateChange }) => {
   const presets = [
     { label: 'Last 7 Days', days: 7 },
     { label: 'Last 30 Days', days: 30 },
+    { label: 'Last 60 Days', days: 60 },
     { label: 'Last 90 Days', days: 90 },
   ];
 
