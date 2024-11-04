@@ -31,7 +31,7 @@ const SymptomTable = ({ user }) => {
     try {
       const [fields, data] = await Promise.all([
         fetchDynamicFields(user.uid),
-        fetchSymptoms(user.uid, 50, 'desc')
+        fetchSymptoms(user.uid, 'desc')
       ]);
       setDynamicFields(fields);
       setSymptomData(data);
