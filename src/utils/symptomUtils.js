@@ -1,5 +1,5 @@
 import { db } from '../firebase';
-import { collection, query, where, getDocs, limit, addDoc, updateDoc, doc, deleteDoc, getDoc, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, updateDoc, doc, deleteDoc, getDoc, orderBy } from 'firebase/firestore';
 import { parseTimestamp } from './dateUtils'; // Assuming you have this utility function
 
 const CACHE_KEY = 'symptomsCache';
@@ -39,9 +39,9 @@ export const clearCache = (userId) => {
   localStorage.removeItem(`${CACHE_KEY}_${userId}`);
 };
 
-export const refreshCache = async (userId, maxResults = 100) => {
+export const refreshCache = async (userId) => {
   validateUserId(userId);
-  await fetchSymptoms(userId, maxResults);
+  await fetchSymptoms(userId);
 };
 
 const validateUserId = (userId) => {
@@ -60,14 +60,13 @@ const validateSymptomData = (symptomData) => {
 /**
  * Fetches symptoms for a given user ID with sorting options and optional date range.
  * @param {string} userId - The user ID to fetch symptoms for.
- * @param {number} [maxResults=100] - Maximum number of results to return.
  * @param {string} [sortOrder='desc'] - Sort order: 'asc' for ascending, 'desc' for descending.
  * @param {Date} [startDate=null] - Optional start date to filter symptoms
  * @param {Date} [endDate=null] - Optional end date to filter symptoms
  * @returns {Promise<Array>} An array of symptom objects.
  * @throws {Error} If no user ID is provided or if there's an error fetching the data.
  */
-export const fetchSymptoms = async (userId, maxResults = 100, sortOrder = 'desc', startDate = null, endDate = null) => {
+export const fetchSymptoms = async (userId, sortOrder = 'desc', startDate = null, endDate = null) => {
   validateUserId(userId);
   if (sortOrder !== 'asc' && sortOrder !== 'desc') {
     throw new Error('Invalid sort order. Use "asc" or "desc".');
@@ -90,9 +89,9 @@ export const fetchSymptoms = async (userId, maxResults = 100, sortOrder = 'desc'
           const symptomDate = parseTimestamp(symptom.symptomDate);
           return symptomDate >= startDate && symptomDate <= endDate;
         });
-        return sortSymptoms(filteredData, sortOrder).slice(0, maxResults);
+        return sortSymptoms(filteredData, sortOrder);
       }
-      return sortSymptoms(cachedData, sortOrder).slice(0, maxResults);
+      return sortSymptoms(cachedData, sortOrder);
     }
 
     console.log('fetchSymptoms: Fetching from database');
@@ -105,11 +104,6 @@ export const fetchSymptoms = async (userId, maxResults = 100, sortOrder = 'desc'
     if (hasDateRange) {
       queryConstraints.push(where("symptomDate", ">=", startDate));
       queryConstraints.push(where("symptomDate", "<=", endDate));
-    }
-
-    // Add limit constraint
-    if (maxResults > 0) {
-      queryConstraints.push(limit(maxResults));
     }
 
     const q = query(
@@ -260,6 +254,12 @@ export const deleteSymptom = async (userId, symptomId) => {
   }
 };
 
+/**
+ * Get a symptom by its ID
+ * @param {string} userId - The user ID to get the symptom for.
+ * @param {string} symptomId - The ID of the symptom to get.
+ * @throws {Error} If no user ID or symptom ID is provided.
+ */
 export const getSymptomById = async (userId, symptomId) => {
   validateUserId(userId);
   if (!symptomId) throw new Error('No symptom ID provided');
