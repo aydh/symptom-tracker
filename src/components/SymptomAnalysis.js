@@ -23,6 +23,7 @@ import { format, startOfWeek, addWeeks } from 'date-fns';
 import { enAU } from 'date-fns/locale';
 import 'chartjs-adapter-date-fns';
 import { renderPointStyle } from '../utils/flagStyleUtils';
+import DateRangeSelector from './DateRangeSelector'; // Import the DateRangeSelector component
 
 ChartJS.register(
   TimeScale, LinearScale, PointElement, LineElement, BarElement,
@@ -41,6 +42,7 @@ const colorPalette = [
   '#B5838D', // Dusty mauve
   '#A5A58D', // Light olive
 ];
+
 // Utility functions
 const generateColors = (count) => Array.from({ length: count }, (_, i) => colorPalette[i % colorPalette.length]);
 
@@ -98,7 +100,9 @@ const SymptomAnalysis = ({ user }) => {
   const [dynamicFields, setDynamicFields] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [toggledFields, setToggledFields] = useState({});
+  const [toggledFields, setToggledFields] = useState([]);
+  const [startDate, setStartDate] = useState(new Date()); // Add state for start date
+  const [endDate, setEndDate] = useState(new Date()); // Add state for end date
 
   const fetchData = useCallback(async () => {
     if (!user?.uid) {
@@ -110,7 +114,7 @@ const SymptomAnalysis = ({ user }) => {
     try {
       const [fields, data] = await Promise.all([
         fetchDynamicFields(user.uid),
-        fetchSymptoms(user.uid, 50, 'asc')
+        fetchSymptoms(user.uid, 'asc')
       ]);
       setDynamicFields(fields);
       setSymptomData(data);
@@ -259,9 +263,23 @@ const SymptomAnalysis = ({ user }) => {
       </Typography>
     </Box>
   );
+
   return (
     <Box sx={{ maxWidth: 1200, margin: 'auto', padding: 2 }}>
       <Typography variant="h4" gutterBottom>Symptom Analysis</Typography>
+
+      <Box sx={{ marginBottom: 4, width: '100%'}}>
+        <Typography variant="h6" gutterBottom>Select Date Range</Typography>
+        <DateRangeSelector
+          startDate={startDate}
+          endDate={endDate}
+          onDateChange={(newStartDate, newEndDate) => {
+            setStartDate(newStartDate);
+            setEndDate(newEndDate);
+          }}
+        />
+      </Box>
+
       <Stack spacing={2} direction="column">
         {prepareChartData.map((data, index) => (
           data.datasets[0].data.length > 0 && (
