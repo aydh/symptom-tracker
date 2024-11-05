@@ -19,7 +19,7 @@ import {
 } from 'chart.js';
 import annotationPlugin from 'chartjs-plugin-annotation';
 import { parseTimestamp } from '../utils/dateUtils';
-import { format, startOfWeek, addWeeks } from 'date-fns';
+import { format, startOfWeek, addWeeks, subDays, startOfDay, endOfDay } from 'date-fns';
 import { enAU } from 'date-fns/locale';
 import 'chartjs-adapter-date-fns';
 import { renderPointStyle } from '../utils/flagStyleUtils';
@@ -101,8 +101,12 @@ const SymptomAnalysis = ({ user }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [toggledFields, setToggledFields] = useState([]);
-  const [startDate, setStartDate] = useState(new Date()); // Add state for start date
-  const [endDate, setEndDate] = useState(new Date()); // Add state for end date
+  
+  // Set default start and end dates
+  const defaultStartDate = startOfDay(subDays(new Date(), 30)); // 30 days ago
+  const defaultEndDate = endOfDay(new Date()); // Today
+  const [startDate, setStartDate] = useState(defaultStartDate);
+  const [endDate, setEndDate] = useState(defaultEndDate);
 
   const fetchData = useCallback(async () => {
     if (!user?.uid) {
@@ -114,7 +118,7 @@ const SymptomAnalysis = ({ user }) => {
     try {
       const [fields, data] = await Promise.all([
         fetchDynamicFields(user.uid),
-        fetchSymptoms(user.uid, 'asc')
+        fetchSymptoms(user.uid, 'asc', startDate, endDate)
       ]);
       setDynamicFields(fields);
       setSymptomData(data);
@@ -128,7 +132,7 @@ const SymptomAnalysis = ({ user }) => {
     } finally {
       setLoading(false);
     }
-  }, [user?.uid]);
+  }, [user?.uid, startDate, endDate]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -268,7 +272,7 @@ const SymptomAnalysis = ({ user }) => {
     <Box sx={{ maxWidth: 1200, margin: 'auto', padding: 2 }}>
       <Typography variant="h4" gutterBottom>Symptom Analysis</Typography>
 
-      <Box sx={{ marginBottom: 4, width: '100%'}}>
+      <Box sx={{ marginBottom: 4, width: '100%' }}>
         <Typography variant="h6" gutterBottom>Select Date Range</Typography>
         <DateRangeSelector
           startDate={startDate}
