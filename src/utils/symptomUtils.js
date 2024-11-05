@@ -75,9 +75,7 @@ export const fetchSymptoms = async (userId, sortOrder = 'desc', startDate = null
   try {
     // If we have a date range, create a specific cache key
     const hasDateRange = startDate instanceof Date && endDate instanceof Date;
-    const cacheKey = hasDateRange ? 
-      `${CACHE_KEY}_${userId}_${startDate.getTime()}_${endDate.getTime()}` : 
-      `${CACHE_KEY}_${userId}`;
+    const cacheKey = `${CACHE_KEY}_${userId}`;
 
     // Check cache with appropriate key
     const cachedData = getCache(userId);
