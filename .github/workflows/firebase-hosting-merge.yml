@@ -10,7 +10,7 @@ jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
     env:
-      REACT_APP_FIREBASE_API_KEY: ${{ secrets.API_KEY }}
+      REACT_APP_FIREBASE_API_KEY: ${{ secrets.REACT_FIREBASE_APP_API_KEY }}
       REACT_APP_FIREBASE_AUTH_DOMAIN: ${{ vars.REACT_APP_FIREBASE_AUTH_DOMAIN }}
       REACT_APP_FIREBASE_PROJECT_ID: ${{ vars.REACT_APP_FIREBASE_PROJECT_ID }}
       REACT_APP_FIREBASE_STORAGE_BUCKET: ${{ vars.REACT_APP_FIREBASE_STORAGE_BUCKET }}
@@ -23,8 +23,6 @@ jobs:
         with:
           node-version: '20'  # Adjust if needed
       - run: npm install
-      - name: Debug Environment Variables
-        run: printenv | grep REACT_APP_
       - run: npm run build
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
