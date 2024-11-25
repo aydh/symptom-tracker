@@ -9,20 +9,22 @@ on:
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
+    env:
+      REACT_APP_FIREBASE_API_KEY: ${{ secrets.API_KEY }}
+      REACT_APP_FIREBASE_AUTH_DOMAIN: ${{ vars.REACT_APP_FIREBASE_AUTH_DOMAIN }}
+      REACT_APP_FIREBASE_PROJECT_ID: ${{ vars.REACT_APP_FIREBASE_PROJECT_ID }}
+      REACT_APP_FIREBASE_STORAGE_BUCKET: ${{ vars.REACT_APP_FIREBASE_STORAGE_BUCKET }}
+      REACT_APP_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.REACT_APP_FIREBASE_MESSAGING_SENDER_ID }}
+      REACT_APP_FIREBASE_APP_ID: ${{ vars.REACT_APP_FIREBASE_APP_ID }}
+      REACT_APP_MEASUREMENT_ID: ${{ vars.REACT_APP_MEASUREMENT_ID }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'  # Adjust if needed
       - run: npm install
-        env:
-          REACT_APP_FIREBASE_API_KEY: ${{ secrets.API_KEY }}
-          REACT_APP_FIREBASE_AUTH_DOMAIN: ${{ vars.REACT_APP_FIREBASE_AUTH_DOMAIN }}
-          REACT_APP_FIREBASE_PROJECT_ID: ${{ vars.REACT_APP_FIREBASE_PROJECT_ID }}
-          REACT_APP_FIREBASE_STORAGE_BUCKET: ${{ vars.REACT_APP_FIREBASE_STORAGE_BUCKET }}
-          REACT_APP_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.REACT_APP_FIREBASE_MESSAGING_SENDER_ID }}
-          REACT_APP_FIREBASE_APP_ID: ${{ vars.REACT_APP_FIREBASE_APP_ID }}
-          REACT_APP_MEASUREMENT_ID: ${{ vars.REACT_APP_MEASUREMENT_ID }}
+      - name: Debug Environment Variables
+        run: printenv | grep REACT_APP_
       - run: npm run build
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
