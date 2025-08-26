@@ -95,6 +95,7 @@ try {
     const [symptoms, setSymptoms] = useState([]);
     const [newSymptom, setNewSymptom] = useState('');
     const [severity, setSeverity] = useState(5);
+    const [symptomDate, setSymptomDate] = useState(new Date().toISOString().split('T')[0]);
     const [loading, setLoading] = useState(false);
     const [status, setStatus] = useState('');
     
@@ -105,11 +106,13 @@ try {
       setLoading(true);
       setStatus('Saving symptom...');
       try {
+        const selectedDate = new Date(symptomDate);
         const symptomData = {
           symptom: newSymptom,
           severity: severity,
-          timestamp: new Date().toISOString(),
-          date: new Date().toISOString().split('T')[0], // Add date field for easier querying
+          timestamp: selectedDate.toISOString(),
+          date: symptomDate,
+          time: selectedDate.toLocaleTimeString(),
           userId: user.uid
         };
         
@@ -117,6 +120,7 @@ try {
         setStatus('Symptom saved successfully!');
         setNewSymptom('');
         setSeverity(5);
+        setSymptomDate(new Date().toISOString().split('T')[0]);
         await loadSymptoms();
         setTimeout(() => setStatus(''), 3000); // Clear status after 3 seconds
       } catch (error) {
@@ -184,6 +188,16 @@ try {
         
         <form onSubmit={addSymptom} style={{ marginBottom: '20px', padding: '20px', background: '#f8f9fa', borderRadius: '8px' }}>
           <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px' }}>Date:</label>
+            <input
+              type="date"
+              value={symptomDate}
+              onChange={(e) => setSymptomDate(e.target.value)}
+              style={{ width: '100%', padding: '10px', border: '1px solid #ccc', borderRadius: '4px' }}
+            />
+          </div>
+          
+          <div style={{ marginBottom: '15px' }}>
             <label style={{ display: 'block', marginBottom: '5px' }}>Symptom:</label>
             <input
               type="text"
@@ -244,7 +258,7 @@ try {
                     </span>
                   </div>
                   <small style={{ color: '#666' }}>
-                    {new Date(symptom.timestamp).toLocaleString()}
+                    {symptom.date} at {symptom.time}
                   </small>
                 </div>
               ))}
