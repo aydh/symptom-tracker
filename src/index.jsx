@@ -27,6 +27,9 @@ try {
   const React = await import('react');
   const { BrowserRouter, Routes, Route, Navigate } = await import('react-router-dom');
   
+  // Import basic MUI components
+  const { Button, AppBar, Toolbar, Typography, Container, Box } = await import('@mui/material');
+  
   // Initialize Firebase
   const { initializeApp } = await import('firebase/app');
   const { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } = await import('firebase/auth');
@@ -396,12 +399,16 @@ try {
     
     return (
       <BrowserRouter>
-        <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif', background: 'white', minHeight: '100vh' }}>
-          <h1>✅ Symptom Tracker App</h1>
-          <p>React 19 + Vite + React Router is working correctly!</p>
-          <p>Status: {status}</p>
-          <p>Time: {new Date().toLocaleTimeString()}</p>
-          <p>Current View: {currentView}</p>
+        <Container maxWidth="lg" sx={{ py: 3 }}>
+          <Typography variant="h4" component="h1" gutterBottom>
+            ✅ Symptom Tracker App
+          </Typography>
+          <Typography variant="body1" color="text.secondary" gutterBottom>
+            React 19 + Vite + React Router is working correctly!
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Status: {status} | Time: {new Date().toLocaleTimeString()} | View: {currentView}
+          </Typography>
           
           {loading ? (
             <div style={{ padding: '20px', textAlign: 'center' }}>
@@ -409,43 +416,36 @@ try {
             </div>
           ) : user ? (
             <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h2>Symptom Tracker</h2>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button 
-                    onClick={() => setCurrentView('track')}
-                    style={{ 
-                      padding: '8px 16px', 
-                      background: currentView === 'track' ? '#0056b3' : '#007bff', 
-                      color: 'white', 
-                      border: 'none', 
-                      borderRadius: '4px', 
-                      cursor: 'pointer' 
-                    }}
-                  >
-                    Track
-                  </button>
-                  <button 
-                    onClick={() => setCurrentView('history')}
-                    style={{ 
-                      padding: '8px 16px', 
-                      background: currentView === 'history' ? '#545b62' : '#6c757d', 
-                      color: 'white', 
-                      border: 'none', 
-                      borderRadius: '4px', 
-                      cursor: 'pointer' 
-                    }}
-                  >
-                    History
-                  </button>
-                  <button 
-                    onClick={() => auth.signOut()}
-                    style={{ padding: '8px 16px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                  >
-                    Logout
-                  </button>
-                </div>
-              </div>
+              <AppBar position="static" sx={{ mb: 3 }}>
+                <Toolbar>
+                  <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+                    Symptom Tracker
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button 
+                      variant={currentView === 'track' ? 'contained' : 'outlined'}
+                      onClick={() => setCurrentView('track')}
+                      color="primary"
+                    >
+                      Track
+                    </Button>
+                    <Button 
+                      variant={currentView === 'history' ? 'contained' : 'outlined'}
+                      onClick={() => setCurrentView('history')}
+                      color="secondary"
+                    >
+                      History
+                    </Button>
+                    <Button 
+                      variant="contained"
+                      onClick={() => auth.signOut()}
+                      color="error"
+                    >
+                      Logout
+                    </Button>
+                  </Box>
+                </Toolbar>
+              </AppBar>
               
               {currentView === 'track' ? (
                 <SymptomTracker user={user} />
@@ -456,7 +456,7 @@ try {
           ) : (
             <Login />
           )}
-        </div>
+        </Container>
       </BrowserRouter>
     );
   };
