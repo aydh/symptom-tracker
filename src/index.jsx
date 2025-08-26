@@ -96,26 +96,31 @@ try {
     const [newSymptom, setNewSymptom] = useState('');
     const [severity, setSeverity] = useState(5);
     const [loading, setLoading] = useState(false);
+    const [status, setStatus] = useState('');
     
     const addSymptom = async (e) => {
       e.preventDefault();
       if (!newSymptom.trim()) return;
       
       setLoading(true);
+      setStatus('Saving symptom...');
       try {
         const symptomData = {
           symptom: newSymptom,
           severity: severity,
           timestamp: new Date().toISOString(),
+          date: new Date().toISOString().split('T')[0], // Add date field for easier querying
           userId: user.uid
         };
         
         const docRef = await addDoc(collection(db, 'symptoms'), symptomData);
-        console.log('Symptom added with ID:', docRef.id);
+        setStatus('Symptom saved successfully!');
         setNewSymptom('');
         setSeverity(5);
-        loadSymptoms();
+        await loadSymptoms();
+        setTimeout(() => setStatus(''), 3000); // Clear status after 3 seconds
       } catch (error) {
+        setStatus('Error saving symptom: ' + error.message);
         console.error('Error adding symptom:', error);
       } finally {
         setLoading(false);
@@ -124,6 +129,7 @@ try {
     
     const loadSymptoms = async () => {
       try {
+        setStatus('Loading symptoms...');
         const q = query(
           collection(db, 'symptoms'),
           where('userId', '==', user.uid)
@@ -135,13 +141,14 @@ try {
           ...doc.data()
         }));
         
-        console.log('Loaded symptoms:', symptomsList);
-        
         // Sort by timestamp in JavaScript
         symptomsList.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
         
         setSymptoms(symptomsList);
+        setStatus(`Loaded ${symptomsList.length} symptoms`);
+        setTimeout(() => setStatus(''), 2000); // Clear status after 2 seconds
       } catch (error) {
+        setStatus('Error loading symptoms: ' + error.message);
         console.error('Error loading symptoms:', error);
       }
     };
@@ -161,6 +168,19 @@ try {
             Logout
           </button>
         </div>
+        
+        {status && (
+          <div style={{ 
+            padding: '10px', 
+            marginBottom: '15px', 
+            background: status.includes('Error') ? '#f8d7da' : '#d4edda', 
+            color: status.includes('Error') ? '#721c24' : '#155724',
+            borderRadius: '4px',
+            textAlign: 'center'
+          }}>
+            {status}
+          </div>
+        )}
         
         <form onSubmit={addSymptom} style={{ marginBottom: '20px', padding: '20px', background: '#f8f9fa', borderRadius: '8px' }}>
           <div style={{ marginBottom: '15px' }}>
