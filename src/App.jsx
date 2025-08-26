@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { auth } from './firebase';
-import Signup from './components/Signup';
-import Login from './components/Login';
-import Logout from './components/Logout';
-import SymptomTracker from './components/SymptomTracker';
-import SymptomAnalysis from './components/SymptomAnalysis';
-import SymptomTable from './components/SymptomTable';
-import DynamicFieldsManager from './components/DynamicFieldsManager';
+import Signup from './components/Signup.jsx';
+import Login from './components/Login.jsx';
+import Logout from './components/Logout.jsx';
+import SymptomTracker from './components/SymptomTracker.jsx';
+import SymptomAnalysis from './components/SymptomAnalysis.jsx';
+import SymptomTable from './components/SymptomTable.jsx';
+import DynamicFieldsManager from './components/DynamicFieldsManager.jsx';
 import { Box, AppBar, Toolbar, Typography, Button, IconButton, Drawer, List, ListItem, ListItemText, useMediaQuery, CircularProgress } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import ListItemButton from '@mui/material/ListItemButton';
-import ClearCacheButton from './components/ClearCacheButton';
+import ClearCacheButton from './components/ClearCacheButton.jsx';
 import { clearCache } from './utils/cacheUtils';  // Import the clearCache function
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
