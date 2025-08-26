@@ -165,28 +165,58 @@ try {
       <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h2>Symptom Tracker</h2>
-          <button 
-            onClick={() => auth.signOut()}
-            style={{ padding: '8px 16px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-          >
-            Logout
-          </button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button 
+              onClick={() => setCurrentView('track')}
+              style={{ 
+                padding: '8px 16px', 
+                background: currentView === 'track' ? '#0056b3' : '#007bff', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '4px', 
+                cursor: 'pointer' 
+              }}
+            >
+              Track
+            </button>
+            <button 
+              onClick={() => setCurrentView('history')}
+              style={{ 
+                padding: '8px 16px', 
+                background: currentView === 'history' ? '#545b62' : '#6c757d', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '4px', 
+                cursor: 'pointer' 
+              }}
+            >
+              History
+            </button>
+            <button 
+              onClick={() => auth.signOut()}
+              style={{ padding: '8px 16px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+            >
+              Logout
+            </button>
+          </div>
         </div>
         
-        {status && (
-          <div style={{ 
-            padding: '10px', 
-            marginBottom: '15px', 
-            background: status.includes('Error') ? '#f8d7da' : '#d4edda', 
-            color: status.includes('Error') ? '#721c24' : '#155724',
-            borderRadius: '4px',
-            textAlign: 'center'
-          }}>
-            {status}
-          </div>
-        )}
-        
-        <form onSubmit={addSymptom} style={{ marginBottom: '20px', padding: '20px', background: '#f8f9fa', borderRadius: '8px' }}>
+        {currentView === 'track' ? (
+          <>
+            {status && (
+              <div style={{ 
+                padding: '10px', 
+                marginBottom: '15px', 
+                background: status.includes('Error') ? '#f8d7da' : '#d4edda', 
+                color: status.includes('Error') ? '#721c24' : '#155724',
+                borderRadius: '4px',
+                textAlign: 'center'
+              }}>
+                {status}
+              </div>
+            )}
+            
+            <form onSubmit={addSymptom} style={{ marginBottom: '20px', padding: '20px', background: '#f8f9fa', borderRadius: '8px' }}>
           <div style={{ marginBottom: '15px' }}>
             <label style={{ display: 'block', marginBottom: '5px' }}>Date:</label>
             <input
@@ -265,6 +295,82 @@ try {
             </div>
           )}
         </div>
+          </>
+        ) : (
+          <SymptomHistory user={user} />
+        )}
+      </div>
+    );
+  };
+  
+  // Simple History Component
+  const SymptomHistory = ({ user }) => {
+    const [symptoms, setSymptoms] = useState([]);
+    const [loading, setLoading] = useState(true);
+    
+    const loadAllSymptoms = async () => {
+      try {
+        setLoading(true);
+        const q = query(
+          collection(db, 'symptoms'),
+          where('userId', '==', user.uid)
+        );
+        
+        const querySnapshot = await getDocs(q);
+        const symptomsList = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        
+        // Sort by date (newest first)
+        symptomsList.sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+        setSymptoms(symptomsList);
+      } catch (error) {
+        console.error('Error loading symptoms:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    useEffect(() => {
+      loadAllSymptoms();
+    }, [user.uid]);
+    
+    if (loading) {
+      return <div style={{ textAlign: 'center', padding: '20px' }}>Loading history...</div>;
+    }
+    
+    return (
+      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
+        <h2>Symptom History</h2>
+        <p>Total symptoms recorded: {symptoms.length}</p>
+        
+        {symptoms.length === 0 ? (
+          <p>No symptoms recorded yet.</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {symptoms.map((symptom) => (
+              <div key={symptom.id} style={{ padding: '15px', background: 'white', border: '1px solid #ddd', borderRadius: '4px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <strong>{symptom.symptom}</strong>
+                  <span style={{ 
+                    padding: '4px 8px', 
+                    background: symptom.severity > 7 ? '#dc3545' : symptom.severity > 4 ? '#ffc107' : '#28a745',
+                    color: 'white',
+                    borderRadius: '4px',
+                    fontSize: '12px'
+                  }}>
+                    Severity: {symptom.severity}
+                  </span>
+                </div>
+                <small style={{ color: '#666' }}>
+                  {symptom.date} at {symptom.time}
+                </small>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   };
@@ -289,6 +395,7 @@ try {
     const [status, setStatus] = useState('Loading...');
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [currentView, setCurrentView] = useState('track'); // 'track' or 'history'
     
     useEffect(() => {
       setStatus('App loaded successfully!');
