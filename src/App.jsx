@@ -1,17 +1,13 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { auth } from './firebase';
-import Signup from './components/Signup';
-import Login from './components/Login';
-import Logout from './components/Logout';
-import SymptomTracker from './components/SymptomTracker';
-import SymptomAnalysis from './components/SymptomAnalysis';
-import SymptomTable from './components/SymptomTable';
-import DynamicFieldsManager from './components/DynamicFieldsManager';
+import Signup from './components/Signup.jsx';
+import Login from './components/Login.jsx';
+import Logout from './components/Logout.jsx';
 import { Box, AppBar, Toolbar, Typography, Button, IconButton, Drawer, List, ListItem, ListItemText, useMediaQuery, CircularProgress } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import ListItemButton from '@mui/material/ListItemButton';
-import ClearCacheButton from './components/ClearCacheButton';
+import ClearCacheButton from './components/ClearCacheButton.jsx';
 import { clearCache } from './utils/cacheUtils';  // Import the clearCache function
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -20,15 +16,28 @@ import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { enAU } from 'date-fns/locale';
 
+// Lazy load heavy components
+const SymptomTracker = lazy(() => import('./components/SymptomTracker.jsx'));
+const SymptomAnalysis = lazy(() => import('./components/SymptomAnalysis.jsx'));
+const SymptomTable = lazy(() => import('./components/SymptomTable.jsx'));
+const DynamicFieldsManager = lazy(() => import('./components/DynamicFieldsManager.jsx'));
+
 const typographySx = { flexGrow: 1 };
 const userEmailSx = { marginRight: 1 };
 const navButtonSx = { marginRight: 0 };
 
-const NavButton = React.memo(({ to, children }) => (
+const NavButton = memo(({ to, children }) => (
   <Button color="inherit" component={Link} to={to} sx={navButtonSx}>
     {children}
   </Button>
 ));
+
+// Loading component for lazy-loaded routes
+const LoadingFallback = () => (
+  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+    <CircularProgress />
+  </Box>
+);
 
 // New function to clear cache and refresh
 const clearCacheAndRefresh = () => {
@@ -46,6 +55,9 @@ function App() {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       setUser(user);
       setLoading(false);
+    }, (error) => {
+      console.error('Auth error:', error);
+      setLoading(false);
     });
     return unsubscribe;
   }, []);
@@ -61,7 +73,15 @@ function App() {
     <Route 
       key={path}
       path={path} 
-      element={user ? <Component user={user} /> : <Navigate to="/" replace />} 
+      element={
+        user ? (
+          <Suspense fallback={<LoadingFallback />}>
+            <Component user={user} />
+          </Suspense>
+        ) : (
+          <Navigate to="/" replace />
+        )
+      } 
     />
   ), [user]);
 

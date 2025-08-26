@@ -1,4 +1,4 @@
-import React, { useCallback, memo } from 'react';
+import { useCallback, memo } from 'react';
 import { Button } from '@mui/material';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { getAuth, signOut } from 'firebase/auth';
@@ -13,10 +13,8 @@ const Logout = memo(function Logout() {
 
   const handleLogout = useCallback(() => {
     const auth = getAuth();
-    console.log('Logging out:',auth.currentUser.email);
     signOut(auth)
       .then(() => {
-        console.log('User logged out successfully.');
         navigate('/');
       })
       .catch((error) => console.error('Error signing out:', error));

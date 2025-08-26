@@ -22,7 +22,7 @@ import { parseTimestamp } from '../utils/dateUtils';
 import { format, startOfWeek, addWeeks, subDays, startOfDay, endOfDay } from 'date-fns';
 import { enAU } from 'date-fns/locale';
 import 'chartjs-adapter-date-fns';
-import { renderPointStyle } from '../utils/flagStyleUtils';
+import { renderPointStyle } from '../utils/flagStyleUtils.jsx';
 import DateRangeSelector from './DateRangeSelector'; // Import the DateRangeSelector component
 
 ChartJS.register(

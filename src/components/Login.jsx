@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { TextField, Button, Box, Typography } from '@mui/material';
 import LoginIcon from '@mui/icons-material/Login';
 import AppRegistrationIcon from '@mui/icons-material/AppRegistration';
@@ -31,7 +31,7 @@ function Login() {
     e.preventDefault();
     try {
       const userCredential = await signInWithEmailAndPassword(getAuth(), credentials.email, credentials.password);
-      console.log('Login successful:', userCredential.user.email);
+
       clearCache(); // Clear the cache after successful login
       navigate('/track');
     } catch (error) {

@@ -7,7 +7,7 @@ import { Box, Typography, Button, TextField, Select, MenuItem,
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
 import { fetchDynamicFields, addDynamicField, updateDynamicField, deleteDynamicField } from '../utils/dynamicFieldsUtils';
-import { pointStyleLookup, renderPointStyle } from '../utils/flagStyleUtils';
+import { pointStyleLookup, renderPointStyle } from '../utils/flagStyleUtils.jsx';
 
 const IconWrapper = ({ children, onClick }) => (
   <IconButton onClick={onClick} size="small">
