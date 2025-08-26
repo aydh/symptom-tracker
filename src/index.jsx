@@ -12,6 +12,27 @@ try {
   const React = await import('react');
   const { BrowserRouter, Routes, Route, Navigate } = await import('react-router-dom');
   
+  // Initialize Firebase
+  const { initializeApp } = await import('firebase/app');
+  const { getAuth } = await import('firebase/auth');
+  
+  const firebaseConfig = {
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.VITE_FIREBASE_APP_ID,
+    measurementId: import.meta.env.VITE_MEASUREMENT_ID
+  };
+  
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  
+  if (debugDiv) {
+    debugDiv.innerHTML += '<p>Firebase initialized successfully</p>';
+  }
+  
   if (debugDiv) {
     debugDiv.innerHTML += '<p>React imports successful</p>';
   }
@@ -27,15 +48,28 @@ try {
   
   const root = createRoot(rootElement);
   
-  // Simple App component with basic routing
+  // Simple App component with basic routing and auth
   const App = () => {
     const [status, setStatus] = useState('Loading...');
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
     
     useEffect(() => {
       setStatus('App loaded successfully!');
       if (debugDiv) {
         debugDiv.innerHTML += '<p>App component mounted</p>';
       }
+      
+      // Set up Firebase auth listener
+      const unsubscribe = auth.onAuthStateChanged((user) => {
+        setUser(user);
+        setLoading(false);
+        if (debugDiv) {
+          debugDiv.innerHTML += '<p>Auth state updated: ' + (user ? 'Logged in' : 'Not logged in') + '</p>';
+        }
+      });
+      
+      return unsubscribe;
     }, []);
     
     return (
@@ -53,6 +87,8 @@ try {
                 <p>✅ React 19 working</p>
                 <p>✅ Vite working</p>
                 <p>✅ React Router working</p>
+                <p>✅ Firebase Auth working</p>
+                <p>Auth Status: {loading ? 'Loading...' : (user ? 'Logged in as ' + user.email : 'Not logged in')}</p>
                 <p>⏳ Adding back components...</p>
               </div>
             } />
