@@ -1,13 +1,9 @@
-import { useState, useEffect, useMemo, useCallback, memo } from 'react';
+import { useState, useEffect, useMemo, useCallback, memo, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { auth } from './firebase';
 import Signup from './components/Signup.jsx';
 import Login from './components/Login.jsx';
 import Logout from './components/Logout.jsx';
-import SymptomTracker from './components/SymptomTracker.jsx';
-import SymptomAnalysis from './components/SymptomAnalysis.jsx';
-import SymptomTable from './components/SymptomTable.jsx';
-import DynamicFieldsManager from './components/DynamicFieldsManager.jsx';
 import { Box, AppBar, Toolbar, Typography, Button, IconButton, Drawer, List, ListItem, ListItemText, useMediaQuery, CircularProgress } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import ListItemButton from '@mui/material/ListItemButton';
@@ -20,6 +16,12 @@ import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { enAU } from 'date-fns/locale';
 
+// Lazy load heavy components
+const SymptomTracker = lazy(() => import('./components/SymptomTracker.jsx'));
+const SymptomAnalysis = lazy(() => import('./components/SymptomAnalysis.jsx'));
+const SymptomTable = lazy(() => import('./components/SymptomTable.jsx'));
+const DynamicFieldsManager = lazy(() => import('./components/DynamicFieldsManager.jsx'));
+
 const typographySx = { flexGrow: 1 };
 const userEmailSx = { marginRight: 1 };
 const navButtonSx = { marginRight: 0 };
@@ -29,6 +31,13 @@ const NavButton = memo(({ to, children }) => (
     {children}
   </Button>
 ));
+
+// Loading component for lazy-loaded routes
+const LoadingFallback = () => (
+  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+    <CircularProgress />
+  </Box>
+);
 
 // New function to clear cache and refresh
 const clearCacheAndRefresh = () => {
@@ -68,7 +77,15 @@ function App() {
     <Route 
       key={path}
       path={path} 
-      element={user ? <Component user={user} /> : <Navigate to="/" replace />} 
+      element={
+        user ? (
+          <Suspense fallback={<LoadingFallback />}>
+            <Component user={user} />
+          </Suspense>
+        ) : (
+          <Navigate to="/" replace />
+        )
+      } 
     />
   ), [user]);
 
