@@ -97,7 +97,7 @@ function SymptomTracker({ user }) {
         const newSymptomId = await addSymptom(user.uid, symptomData);
         setSymptom({ id: newSymptomId, ...symptomData });
       }
-      console.log('Symptom saved successfully');
+
     } catch (e) {
       console.error("Error saving symptom:", e);
     }
@@ -121,7 +121,7 @@ function SymptomTracker({ user }) {
     if (newDate <= endOfDay(today)) {
       setSelectedDate(newDate);
     } else {
-      console.log('Cannot select a future date');
+
     }
   }, []);
 

@@ -10,7 +10,17 @@ export default defineConfig({
   },
   build: {
     outDir: 'build',
-    sourcemap: true
+    sourcemap: false, // Disable sourcemaps in production for smaller bundle
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          mui: ['@mui/material', '@mui/icons-material'],
+          firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore'],
+          charts: ['chart.js', 'react-chartjs-2']
+        }
+      }
+    }
   },
   test: {
     globals: true,

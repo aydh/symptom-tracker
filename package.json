@@ -6,8 +6,7 @@
     "@date-io/date-fns": "^3.2.1",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
-    "@fontsource/lora": "^5.1.0",
-    "@fontsource/roboto": "^5.1.0",
+
     "@mui/icons-material": "^7.3.1",
     "@mui/material": "^7.3.1",
     "@mui/x-date-pickers": "^8.10.2",
@@ -23,8 +22,7 @@
     "react-chartjs-2": "^5.2.0",
     "react-color": "^2.19.3",
     "react-dom": "^19.1.1",
-    "react-router-dom": "^6.27.0",
-    "web-vitals": "^2.1.4"
+    "react-router-dom": "^6.27.0"
   },
   "scripts": {
     "dev": "vite",
@@ -33,7 +31,6 @@
     "test": "vitest"
   },
   "devDependencies": {
-    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "@testing-library/jest-dom": "^6.8.0",
     "@vitejs/plugin-react": "^5.0.1",
     "jsdom": "^26.1.0",
