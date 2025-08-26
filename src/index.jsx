@@ -110,7 +110,8 @@ try {
           userId: user.uid
         };
         
-        await addDoc(collection(db, 'symptoms'), symptomData);
+        const docRef = await addDoc(collection(db, 'symptoms'), symptomData);
+        console.log('Symptom added with ID:', docRef.id);
         setNewSymptom('');
         setSeverity(5);
         loadSymptoms();
@@ -125,14 +126,20 @@ try {
       try {
         const q = query(
           collection(db, 'symptoms'),
-          where('userId', '==', user.uid),
-          orderBy('timestamp', 'desc')
+          where('userId', '==', user.uid)
         );
+        
         const querySnapshot = await getDocs(q);
         const symptomsList = querySnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         }));
+        
+        console.log('Loaded symptoms:', symptomsList);
+        
+        // Sort by timestamp in JavaScript
+        symptomsList.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        
         setSymptoms(symptomsList);
       } catch (error) {
         console.error('Error loading symptoms:', error);
