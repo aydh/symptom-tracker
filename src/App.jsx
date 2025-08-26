@@ -42,9 +42,16 @@ function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
+  console.log('App component rendering, loading:', loading, 'user:', user);
+
   useEffect(() => {
+    console.log('Setting up Firebase auth listener');
     const unsubscribe = auth.onAuthStateChanged((user) => {
+      console.log('Auth state changed:', user);
       setUser(user);
+      setLoading(false);
+    }, (error) => {
+      console.error('Auth error:', error);
       setLoading(false);
     });
     return unsubscribe;
