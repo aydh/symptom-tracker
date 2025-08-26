@@ -9,6 +9,7 @@
 
 [build.environment]
   NODE_VERSION = "20"
+  NPM_FLAGS = "--legacy-peer-deps"
   VITE_FIREBASE_API_KEY = "AIzaSyD_Qbg2oefCrjtjeU1NgytHmZLdrmccE3I"
   VITE_FIREBASE_AUTH_DOMAIN = "symptom-tracker-aydh.firebaseapp.com"
   VITE_FIREBASE_PROJECT_ID = "symptom-tracker-aydh"
