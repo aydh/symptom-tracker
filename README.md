@@ -1,5 +1,6 @@
 # Symptom Tracker
 
+
 A comprehensive symptom tracking application built with React 19, Vite, and Material-UI.
 
 ## Features
