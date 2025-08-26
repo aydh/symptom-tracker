@@ -15,6 +15,7 @@ try {
   // Initialize Firebase
   const { initializeApp } = await import('firebase/app');
   const { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } = await import('firebase/auth');
+  const { getFirestore, collection, addDoc, query, where, orderBy, getDocs } = await import('firebase/firestore');
   
   const firebaseConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -28,6 +29,7 @@ try {
   
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
+  const db = getFirestore(app);
   
   if (debugDiv) {
     debugDiv.innerHTML += '<p>Firebase initialized successfully</p>';
@@ -88,6 +90,144 @@ try {
     );
   };
   
+  // Simple Symptom Tracker Component
+  const SymptomTracker = ({ user }) => {
+    const [symptoms, setSymptoms] = useState([]);
+    const [newSymptom, setNewSymptom] = useState('');
+    const [severity, setSeverity] = useState(5);
+    const [loading, setLoading] = useState(false);
+    
+    const addSymptom = async (e) => {
+      e.preventDefault();
+      if (!newSymptom.trim()) return;
+      
+      setLoading(true);
+      try {
+        const symptomData = {
+          symptom: newSymptom,
+          severity: severity,
+          timestamp: new Date().toISOString(),
+          userId: user.uid
+        };
+        
+        await addDoc(collection(db, 'symptoms'), symptomData);
+        setNewSymptom('');
+        setSeverity(5);
+        loadSymptoms();
+      } catch (error) {
+        console.error('Error adding symptom:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    const loadSymptoms = async () => {
+      try {
+        const q = query(
+          collection(db, 'symptoms'),
+          where('userId', '==', user.uid),
+          orderBy('timestamp', 'desc')
+        );
+        const querySnapshot = await getDocs(q);
+        const symptomsList = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setSymptoms(symptomsList);
+      } catch (error) {
+        console.error('Error loading symptoms:', error);
+      }
+    };
+    
+    useEffect(() => {
+      loadSymptoms();
+    }, [user.uid]);
+    
+    return (
+      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h2>Symptom Tracker</h2>
+          <button 
+            onClick={() => auth.signOut()}
+            style={{ padding: '8px 16px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+          >
+            Logout
+          </button>
+        </div>
+        
+        <form onSubmit={addSymptom} style={{ marginBottom: '20px', padding: '20px', background: '#f8f9fa', borderRadius: '8px' }}>
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px' }}>Symptom:</label>
+            <input
+              type="text"
+              value={newSymptom}
+              onChange={(e) => setNewSymptom(e.target.value)}
+              placeholder="Describe your symptom..."
+              style={{ width: '100%', padding: '10px', border: '1px solid #ccc', borderRadius: '4px' }}
+            />
+          </div>
+          
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px' }}>Severity (1-10): {severity}</label>
+            <input
+              type="range"
+              min="1"
+              max="10"
+              value={severity}
+              onChange={(e) => setSeverity(parseInt(e.target.value))}
+              style={{ width: '100%' }}
+            />
+          </div>
+          
+          <button 
+            type="submit" 
+            disabled={loading}
+            style={{ 
+              padding: '10px 20px', 
+              background: '#007bff', 
+              color: 'white', 
+              border: 'none', 
+              borderRadius: '4px', 
+              cursor: loading ? 'not-allowed' : 'pointer',
+              opacity: loading ? 0.6 : 1
+            }}
+          >
+            {loading ? 'Adding...' : 'Add Symptom'}
+          </button>
+        </form>
+        
+        <div>
+          <h3>Recent Symptoms</h3>
+          {symptoms.length === 0 ? (
+            <p>No symptoms recorded yet.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {symptoms.slice(0, 10).map((symptom) => (
+                <div key={symptom.id} style={{ padding: '15px', background: 'white', border: '1px solid #ddd', borderRadius: '4px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <strong>{symptom.symptom}</strong>
+                    <span style={{ 
+                      padding: '4px 8px', 
+                      background: severity > 7 ? '#dc3545' : severity > 4 ? '#ffc107' : '#28a745',
+                      color: 'white',
+                      borderRadius: '4px',
+                      fontSize: '12px'
+                    }}>
+                      Severity: {symptom.severity}
+                    </span>
+                  </div>
+                  <small style={{ color: '#666' }}>
+                    {new Date(symptom.timestamp).toLocaleString()}
+                  </small>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+  
   if (debugDiv) {
     debugDiv.innerHTML += '<p>React imports successful</p>';
   }
@@ -142,21 +282,7 @@ try {
                   <p>Loading...</p>
                 </div>
               ) : user ? (
-                <div style={{ marginTop: '20px', padding: '10px', background: '#f0f0f0', borderRadius: '5px' }}>
-                  <h3>Welcome, {user.email}!</h3>
-                  <p>✅ React 19 working</p>
-                  <p>✅ Vite working</p>
-                  <p>✅ React Router working</p>
-                  <p>✅ Firebase Auth working</p>
-                  <p>✅ Login/Logout working</p>
-                  <p>⏳ Adding back components...</p>
-                  <button 
-                    onClick={() => auth.signOut()}
-                    style={{ padding: '10px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', marginTop: '10px' }}
-                  >
-                    Logout
-                  </button>
-                </div>
+                <SymptomTracker user={user} />
               ) : (
                 <Login />
               )
