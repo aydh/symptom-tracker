@@ -14,7 +14,7 @@ try {
   
   // Initialize Firebase
   const { initializeApp } = await import('firebase/app');
-  const { getAuth } = await import('firebase/auth');
+  const { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } = await import('firebase/auth');
   
   const firebaseConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -32,6 +32,61 @@ try {
   if (debugDiv) {
     debugDiv.innerHTML += '<p>Firebase initialized successfully</p>';
   }
+  
+  // Simple Login Component
+  const Login = ({ onLogin }) => {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [isSignup, setIsSignup] = useState(false);
+    const [error, setError] = useState('');
+    
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      setError('');
+      
+      try {
+        if (isSignup) {
+          await createUserWithEmailAndPassword(auth, email, password);
+        } else {
+          await signInWithEmailAndPassword(auth, email, password);
+        }
+      } catch (error) {
+        setError(error.message);
+      }
+    };
+    
+    return (
+      <div style={{ maxWidth: '400px', margin: '0 auto', padding: '20px' }}>
+        <h2>{isSignup ? 'Sign Up' : 'Login'}</h2>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            style={{ padding: '10px', border: '1px solid #ccc', borderRadius: '4px' }}
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            style={{ padding: '10px', border: '1px solid #ccc', borderRadius: '4px' }}
+          />
+          <button type="submit" style={{ padding: '10px', background: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+            {isSignup ? 'Sign Up' : 'Login'}
+          </button>
+        </form>
+        {error && <p style={{ color: 'red' }}>{error}</p>}
+        <button 
+          onClick={() => setIsSignup(!isSignup)}
+          style={{ background: 'none', border: 'none', color: '#007bff', cursor: 'pointer', marginTop: '10px' }}
+        >
+          {isSignup ? 'Already have an account? Login' : 'Need an account? Sign Up'}
+        </button>
+      </div>
+    );
+  };
   
   if (debugDiv) {
     debugDiv.innerHTML += '<p>React imports successful</p>';
@@ -82,15 +137,29 @@ try {
           
           <Routes>
             <Route path="/" element={
-              <div style={{ marginTop: '20px', padding: '10px', background: '#f0f0f0', borderRadius: '5px' }}>
-                <h3>Home Page</h3>
-                <p>✅ React 19 working</p>
-                <p>✅ Vite working</p>
-                <p>✅ React Router working</p>
-                <p>✅ Firebase Auth working</p>
-                <p>Auth Status: {loading ? 'Loading...' : (user ? 'Logged in as ' + user.email : 'Not logged in')}</p>
-                <p>⏳ Adding back components...</p>
-              </div>
+              loading ? (
+                <div style={{ padding: '20px', textAlign: 'center' }}>
+                  <p>Loading...</p>
+                </div>
+              ) : user ? (
+                <div style={{ marginTop: '20px', padding: '10px', background: '#f0f0f0', borderRadius: '5px' }}>
+                  <h3>Welcome, {user.email}!</h3>
+                  <p>✅ React 19 working</p>
+                  <p>✅ Vite working</p>
+                  <p>✅ React Router working</p>
+                  <p>✅ Firebase Auth working</p>
+                  <p>✅ Login/Logout working</p>
+                  <p>⏳ Adding back components...</p>
+                  <button 
+                    onClick={() => auth.signOut()}
+                    style={{ padding: '10px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', marginTop: '10px' }}
+                  >
+                    Logout
+                  </button>
+                </div>
+              ) : (
+                <Login />
+              )
             } />
             <Route path="/test" element={
               <div style={{ marginTop: '20px', padding: '10px', background: '#e8f5e8', borderRadius: '5px' }}>
