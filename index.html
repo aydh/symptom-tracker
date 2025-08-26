@@ -38,7 +38,26 @@
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
+    <div id="root">
+      <div style="padding: 20px; font-family: Arial, sans-serif; background: #f0f0f0; min-height: 100vh;">
+        <h1>Loading...</h1>
+        <p>If you see this message for more than 5 seconds, there's an issue with the app.</p>
+        <div id="debug-info"></div>
+      </div>
+    </div>
+    <script>
+      // Inline debugging
+      console.log('HTML loaded');
+      document.getElementById('debug-info').innerHTML = '<p>HTML loaded at: ' + new Date().toLocaleTimeString() + '</p>';
+      
+      // Check if root element exists
+      const root = document.getElementById('root');
+      if (root) {
+        document.getElementById('debug-info').innerHTML += '<p>Root element found</p>';
+      } else {
+        document.getElementById('debug-info').innerHTML += '<p style="color: red;">Root element NOT found!</p>';
+      }
+    </script>
     <script type="module" src="/src/index.jsx"></script>
   </body>
 </html>

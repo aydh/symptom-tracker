@@ -1,69 +1,64 @@
-import { createRoot } from 'react-dom/client';
-import { StrictMode } from 'react';
-import React from 'react';
-import App from './App.jsx';
-import '@fontsource/lora/400.css';
-import '@fontsource/lora/500.css';
-import '@fontsource/lora/700.css';
+console.log('React script starting...');
 
-const root = createRoot(document.getElementById('root'));
-
-// More robust error boundary
-class ErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error, errorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
-          <h1>Something went wrong</h1>
-          <p>Error: {this.state.error?.message}</p>
-          <pre>{this.state.error?.stack}</pre>
-        </div>
-      );
-    }
-
-    return this.props.children;
-  }
+// Add visible debugging to the page
+const debugDiv = document.getElementById('debug-info');
+if (debugDiv) {
+  debugDiv.innerHTML += '<p>React script loaded at: ' + new Date().toLocaleTimeString() + '</p>';
 }
 
-// Add global error handlers
-window.addEventListener('error', (event) => {
-  console.error('Global error:', event.error);
-});
-
-window.addEventListener('unhandledrejection', (event) => {
-  console.error('Unhandled promise rejection:', event.reason);
-});
-
-console.log('Starting app initialization...');
-
-// Simple test component
-const TestComponent = () => {
-  console.log('TestComponent rendering');
-  return (
-    <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
-      <h1>Test Component</h1>
-      <p>If you can see this, React is working!</p>
-    </div>
-  );
-};
-
-root.render(
-  <StrictMode>
-    <ErrorBoundary>
+try {
+  const { createRoot } = await import('react-dom/client');
+  const { StrictMode } = await import('react');
+  const React = await import('react');
+  
+  if (debugDiv) {
+    debugDiv.innerHTML += '<p>React imports successful</p>';
+  }
+  
+  const rootElement = document.getElementById('root');
+  if (!rootElement) {
+    throw new Error('Root element not found');
+  }
+  
+  if (debugDiv) {
+    debugDiv.innerHTML += '<p>Root element found, creating React root</p>';
+  }
+  
+  const root = createRoot(rootElement);
+  
+  // Simple test component
+  const TestComponent = () => {
+    if (debugDiv) {
+      debugDiv.innerHTML += '<p>TestComponent rendering</p>';
+    }
+    return (
+      <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif', background: 'white' }}>
+        <h1>✅ React is Working!</h1>
+        <p>If you can see this, React 19 + Vite is working correctly!</p>
+        <p>Time: {new Date().toLocaleTimeString()}</p>
+      </div>
+    );
+  };
+  
+  if (debugDiv) {
+    debugDiv.innerHTML += '<p>About to render React component</p>';
+  }
+  
+  root.render(
+    <StrictMode>
       <TestComponent />
-    </ErrorBoundary>
-  </StrictMode>
-);
+    </StrictMode>
+  );
+  
+  if (debugDiv) {
+    debugDiv.innerHTML += '<p style="color: green;">React render completed successfully!</p>';
+  }
+  
+} catch (error) {
+  console.error('Error in React setup:', error);
+  const debugDiv = document.getElementById('debug-info');
+  if (debugDiv) {
+    debugDiv.innerHTML += '<p style="color: red;">Error: ' + error.message + '</p>';
+    debugDiv.innerHTML += '<pre style="color: red;">' + error.stack + '</pre>';
+  }
+}
