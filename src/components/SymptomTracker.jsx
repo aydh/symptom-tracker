@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { 
   TextField, Select, MenuItem, Box, Typography, Switch, 
   FormControlLabel, FormControl, InputLabel, IconButton,

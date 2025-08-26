@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Box, Typography, CircularProgress, Stack, List, ListItem, ListItemIcon, ListItemText, FormControlLabel, Switch } from '@mui/material';
 import { Link } from 'react-router-dom';
 import { fetchDynamicFields } from '../utils/dynamicFieldsUtils';
