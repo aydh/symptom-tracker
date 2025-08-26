@@ -6,6 +6,21 @@ if (debugDiv) {
   debugDiv.innerHTML += '<p>React script loaded at: ' + new Date().toLocaleTimeString() + '</p>';
 }
 
+// Add error handling for the entire script
+window.addEventListener('error', (event) => {
+  console.error('Global error:', event.error);
+  if (debugDiv) {
+    debugDiv.innerHTML += '<p style="color: red;">Global error: ' + event.error.message + '</p>';
+  }
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('Unhandled promise rejection:', event.reason);
+  if (debugDiv) {
+    debugDiv.innerHTML += '<p style="color: red;">Promise error: ' + event.reason + '</p>';
+  }
+});
+
 try {
   const { createRoot } = await import('react-dom/client');
   const { StrictMode, useState, useEffect } = await import('react');
@@ -163,60 +178,20 @@ try {
     
     return (
       <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h2>Symptom Tracker</h2>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button 
-              onClick={() => setCurrentView('track')}
-              style={{ 
-                padding: '8px 16px', 
-                background: currentView === 'track' ? '#0056b3' : '#007bff', 
-                color: 'white', 
-                border: 'none', 
-                borderRadius: '4px', 
-                cursor: 'pointer' 
-              }}
-            >
-              Track
-            </button>
-            <button 
-              onClick={() => setCurrentView('history')}
-              style={{ 
-                padding: '8px 16px', 
-                background: currentView === 'history' ? '#545b62' : '#6c757d', 
-                color: 'white', 
-                border: 'none', 
-                borderRadius: '4px', 
-                cursor: 'pointer' 
-              }}
-            >
-              History
-            </button>
-            <button 
-              onClick={() => auth.signOut()}
-              style={{ padding: '8px 16px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-            >
-              Logout
-            </button>
+        {status && (
+          <div style={{ 
+            padding: '10px', 
+            marginBottom: '15px', 
+            background: status.includes('Error') ? '#f8d7da' : '#d4edda', 
+            color: status.includes('Error') ? '#721c24' : '#155724',
+            borderRadius: '4px',
+            textAlign: 'center'
+          }}>
+            {status}
           </div>
-        </div>
+        )}
         
-        {currentView === 'track' ? (
-          <>
-            {status && (
-              <div style={{ 
-                padding: '10px', 
-                marginBottom: '15px', 
-                background: status.includes('Error') ? '#f8d7da' : '#d4edda', 
-                color: status.includes('Error') ? '#721c24' : '#155724',
-                borderRadius: '4px',
-                textAlign: 'center'
-              }}>
-                {status}
-              </div>
-            )}
-            
-            <form onSubmit={addSymptom} style={{ marginBottom: '20px', padding: '20px', background: '#f8f9fa', borderRadius: '8px' }}>
+        <form onSubmit={addSymptom} style={{ marginBottom: '20px', padding: '20px', background: '#f8f9fa', borderRadius: '8px' }}>
           <div style={{ marginBottom: '15px' }}>
             <label style={{ display: 'block', marginBottom: '5px' }}>Date:</label>
             <input
@@ -295,10 +270,6 @@ try {
             </div>
           )}
         </div>
-          </>
-        ) : (
-          <SymptomHistory user={user} />
-        )}
       </div>
     );
   };
@@ -397,6 +368,10 @@ try {
     const [loading, setLoading] = useState(true);
     const [currentView, setCurrentView] = useState('track'); // 'track' or 'history'
     
+    if (debugDiv) {
+      debugDiv.innerHTML += '<p>App component created</p>';
+    }
+    
     useEffect(() => {
       setStatus('App loaded successfully!');
       if (debugDiv) {
@@ -415,6 +390,10 @@ try {
       return unsubscribe;
     }, []);
     
+    if (debugDiv) {
+      debugDiv.innerHTML += '<p>App component rendering...</p>';
+    }
+    
     return (
       <BrowserRouter>
         <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif', background: 'white', minHeight: '100vh' }}>
@@ -422,31 +401,61 @@ try {
           <p>React 19 + Vite + React Router is working correctly!</p>
           <p>Status: {status}</p>
           <p>Time: {new Date().toLocaleTimeString()}</p>
+          <p>Current View: {currentView}</p>
           
-          <Routes>
-            <Route path="/" element={
-              loading ? (
-                <div style={{ padding: '20px', textAlign: 'center' }}>
-                  <p>Loading...</p>
+          {loading ? (
+            <div style={{ padding: '20px', textAlign: 'center' }}>
+              <p>Loading...</p>
+            </div>
+          ) : user ? (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h2>Symptom Tracker</h2>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button 
+                    onClick={() => setCurrentView('track')}
+                    style={{ 
+                      padding: '8px 16px', 
+                      background: currentView === 'track' ? '#0056b3' : '#007bff', 
+                      color: 'white', 
+                      border: 'none', 
+                      borderRadius: '4px', 
+                      cursor: 'pointer' 
+                    }}
+                  >
+                    Track
+                  </button>
+                  <button 
+                    onClick={() => setCurrentView('history')}
+                    style={{ 
+                      padding: '8px 16px', 
+                      background: currentView === 'history' ? '#545b62' : '#6c757d', 
+                      color: 'white', 
+                      border: 'none', 
+                      borderRadius: '4px', 
+                      cursor: 'pointer' 
+                    }}
+                  >
+                    History
+                  </button>
+                  <button 
+                    onClick={() => auth.signOut()}
+                    style={{ padding: '8px 16px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                  >
+                    Logout
+                  </button>
                 </div>
-              ) : user ? (
+              </div>
+              
+              {currentView === 'track' ? (
                 <SymptomTracker user={user} />
               ) : (
-                <Login />
-              )
-            } />
-            <Route path="/test" element={
-              <div style={{ marginTop: '20px', padding: '10px', background: '#e8f5e8', borderRadius: '5px' }}>
-                <h3>Test Page</h3>
-                <p>Routing is working! You can navigate between pages.</p>
-                <a href="/" style={{ color: 'blue' }}>← Back to Home</a>
-              </div>
-            } />
-          </Routes>
-          
-          <div style={{ marginTop: '20px' }}>
-            <a href="/test" style={{ color: 'blue', marginRight: '10px' }}>Test Route</a>
-          </div>
+                <SymptomHistory user={user} />
+              )}
+            </>
+          ) : (
+            <Login />
+          )}
         </div>
       </BrowserRouter>
     );
