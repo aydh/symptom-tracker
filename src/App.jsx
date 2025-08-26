@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { auth } from './firebase';
 import Signup from './components/Signup.jsx';
@@ -24,7 +24,7 @@ const typographySx = { flexGrow: 1 };
 const userEmailSx = { marginRight: 1 };
 const navButtonSx = { marginRight: 0 };
 
-const NavButton = React.memo(({ to, children }) => (
+const NavButton = memo(({ to, children }) => (
   <Button color="inherit" component={Link} to={to} sx={navButtonSx}>
     {children}
   </Button>
