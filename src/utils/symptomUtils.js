@@ -69,7 +69,7 @@ const validateSymptomData = (symptomData) => {
 export const fetchSymptoms = async (userId, sortOrder = 'desc', startDate = null, endDate = null) => {
   validateUserId(userId);
   if (sortOrder !== 'asc' && sortOrder !== 'desc') {
-    throw new Error('Invalid sort order. Use "asc" or "desc".');
+    throw new Error('Invalid sort order. Must be "asc" or "desc"');
   }
 
   try {
@@ -80,7 +80,6 @@ export const fetchSymptoms = async (userId, sortOrder = 'desc', startDate = null
     // Check cache with appropriate key
     const cachedData = getCache(userId);
     if (cachedData) {
-      console.log('fetchSymptoms: Using cached data');
       if (hasDateRange) {
         // Filter cached data by date range
         const filteredData = cachedData.filter(symptom => {
@@ -92,7 +91,6 @@ export const fetchSymptoms = async (userId, sortOrder = 'desc', startDate = null
       return sortSymptoms(cachedData, sortOrder);
     }
 
-    console.log('fetchSymptoms: Fetching from database');
     let queryConstraints = [
       where("userId", "==", userId),
       orderBy("symptomDate", sortOrder)
@@ -124,8 +122,6 @@ export const fetchSymptoms = async (userId, sortOrder = 'desc', startDate = null
     } else {
       setCache(userId, symptoms);
     }
-
-    console.log(`fetchSymptoms: Fetched and cached ${symptoms.length} symptoms`);
 
     return symptoms;
   } catch (error) {
@@ -160,7 +156,6 @@ export const addSymptom = async (userId, symptomData) => {
   validateSymptomData(symptomData);
 
   try {
-    console.log('addSymptom: Adding to database');
     const symptomsRef = collection(db, COLLECTION_NAME);
     const newSymptomRef = await addDoc(symptomsRef, {
       ...symptomData,
@@ -171,7 +166,6 @@ export const addSymptom = async (userId, symptomData) => {
     const cachedData = getCache(userId) || [];
     const updatedCache = sortSymptoms([newSymptom, ...cachedData], 'desc');
     setCache(userId, updatedCache);
-    console.log(`addSymptom: Added new symptom with ID ${newSymptomRef.id}`);
 
     return newSymptomRef.id;
   } catch (error) {
@@ -193,7 +187,6 @@ export const updateSymptom = async (userId, symptomId, updateData) => {
   validateSymptomData(updateData);
 
   try {
-    console.log(`updateSymptom: Updating symptom ${symptomId}`);
     const symptomRef = doc(db, COLLECTION_NAME, symptomId);
     
     // Verify the symptom belongs to the user
@@ -210,7 +203,6 @@ export const updateSymptom = async (userId, symptomId, updateData) => {
     );
     const sortedSymptoms = sortSymptoms(updatedSymptoms, 'desc');
     setCache(userId, sortedSymptoms);
-    console.log(`updateSymptom: Updated symptom ${symptomId}`);
   } catch (error) {
     console.error('Error updating symptom:', error);
     throw new Error('Failed to update symptom');
@@ -228,7 +220,6 @@ export const deleteSymptom = async (userId, symptomId) => {
   if (!symptomId) throw new Error('No symptom ID provided');
 
   try {
-    console.log(`deleteSymptom: Deleting symptom ${symptomId}`);
     const symptomRef = doc(db, COLLECTION_NAME, symptomId);
     const symptomDoc = await getDoc(symptomRef);
     
@@ -245,7 +236,6 @@ export const deleteSymptom = async (userId, symptomId) => {
     const cachedData = getCache(userId) || [];
     const updatedSymptoms = cachedData.filter(symptom => symptom.id !== symptomId);
     setCache(userId, updatedSymptoms);
-    console.log(`deleteSymptom: Deleted symptom ${symptomId}`);
   } catch (error) {
     console.error('Error deleting symptom:', error);
     throw error;
@@ -263,7 +253,6 @@ export const getSymptomById = async (userId, symptomId) => {
   if (!symptomId) throw new Error('No symptom ID provided');
 
   try {
-    console.log(`getSymptomById: Fetching symptom ${symptomId}`);
     const symptomRef = doc(db, COLLECTION_NAME, symptomId);
     const symptomDoc = await getDoc(symptomRef);
 

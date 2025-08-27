@@ -72,11 +72,9 @@ export const fetchDynamicFields = async (userId, maxResults = 100) => {
   try {
     const cachedData = getCache(userId);
     if (cachedData) {
-      console.log('fetchDynamicFields: Using cached data');
       return cachedData.slice(0, maxResults);
     }
 
-    console.log('fetchDynamicFields: Fetching from database');
     const q = query(
       collection(db, COLLECTION_NAME),
       where("userId", "==", userId),
@@ -91,7 +89,6 @@ export const fetchDynamicFields = async (userId, maxResults = 100) => {
     }));
 
     setCache(userId, fields);
-    console.log(`fetchDynamicFields: Fetched and cached ${fields.length} fields`);
 
     return fields;
   } catch (error) {
