@@ -4,6 +4,7 @@ import { auth } from './firebase';
 import Signup from './components/Signup.jsx';
 import Login from './components/Login.jsx';
 import Logout from './components/Logout.jsx';
+import FirebaseTest from './components/FirebaseTest.jsx';
 import { Box, AppBar, Toolbar, Typography, Button, IconButton, Drawer, List, ListItem, ListItemText, useMediaQuery, CircularProgress } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import ListItemButton from '@mui/material/ListItemButton';
@@ -89,6 +90,7 @@ function App() {
     <>
       <Route path="/" element={user ? <Navigate to="/track" replace /> : <Login />} />
       <Route path="/signup" element={user ? <Navigate to="/track" replace /> : <Signup />} />
+      <Route path="/debug" element={<FirebaseTest />} />
       {renderProtectedRoute("/track", SymptomTracker)}
       {renderProtectedRoute("/analyse", SymptomAnalysis)}
       {renderProtectedRoute("/table", SymptomTable)}
@@ -101,6 +103,7 @@ function App() {
     { text: 'Analyse', path: '/analyse' },
     { text: 'History', path: '/table' },
     { text: 'Questions', path: '/config' },
+    { text: 'Debug', path: '/debug' },
     { text: 'Refresh', action: clearCacheAndRefresh },
   ], []);
 
