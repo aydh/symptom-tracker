@@ -43,21 +43,3 @@ export const analytics = import.meta.env.VITE_MEASUREMENT_ID
 console.log('Firebase initialized with project:', firebaseConfig.projectId);
 console.log('Auth domain:', firebaseConfig.authDomain);
 console.log('Current domain:', window.location.hostname);
-
-// Test Firestore connection
-const testFirestoreConnection = async () => {
-  try {
-    console.log('Testing Firestore connection...');
-    const { collection, getDocs } = await import('firebase/firestore');
-    const testCollection = collection(db, 'test');
-    await getDocs(testCollection);
-    console.log('Firestore connection successful');
-  } catch (error) {
-    console.error('Firestore connection test failed:', error);
-    console.error('Error code:', error.code);
-    console.error('Error message:', error.message);
-  }
-};
-
-// Run connection test after a short delay
-setTimeout(testFirestoreConnection, 1000);
