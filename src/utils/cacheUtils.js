@@ -14,7 +14,6 @@ export const clearCache = async () => {
     // Clear session storage
     sessionStorage.clear();
 
-    console.log('Cache cleared successfully');
     return true;
   } catch (error) {
     console.error('Error clearing cache:', error);
