@@ -107,6 +107,7 @@ export const fetchSymptoms = async (userId, sortOrder = 'desc', startDate = null
       ...queryConstraints
     );
 
+    console.log('Attempting to fetch symptoms from Firestore...');
     const querySnapshot = await getDocs(q);
     const symptoms = querySnapshot.docs.map(doc => ({
       id: doc.id,
@@ -126,6 +127,18 @@ export const fetchSymptoms = async (userId, sortOrder = 'desc', startDate = null
     return symptoms;
   } catch (error) {
     console.error('Error fetching symptoms:', error);
+    console.error('Error code:', error.code);
+    console.error('Error message:', error.message);
+    
+    // Provide more specific error messages
+    if (error.code === 'permission-denied') {
+      throw new Error('Access denied. Please check your authentication status.');
+    } else if (error.code === 'unavailable') {
+      throw new Error('Firestore is currently unavailable. Please try again later.');
+    } else if (error.code === 'unauthenticated') {
+      throw new Error('You must be logged in to access this data.');
+    }
+    
     throw new Error('Failed to fetch symptoms');
   }
 };
