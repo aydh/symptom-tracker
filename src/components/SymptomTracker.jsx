@@ -32,20 +32,30 @@ function SymptomTracker({ user }) {
   const [localSliderValues, setLocalSliderValues] = useState({});
 
   const getDynamicFields = useCallback(async () => {
+    if (!user?.uid) {
+      console.log('User not authenticated yet, skipping dynamic fields fetch');
+      return;
+    }
+    
     try {
       const fields = await fetchDynamicFields(user.uid, 50, 'desc');
       setDynamicFields(fields);
     } catch (err) {
       console.error('Error fetching dynamic fields:', err);
     }
-  }, [user.uid]);
+  }, [user?.uid]);
 
   useEffect(() => {
-    getDynamicFields();
-  }, [getDynamicFields]);
+    if (user?.uid) {
+      getDynamicFields();
+    }
+  }, [getDynamicFields, user?.uid]);
 
   const getEntryForDate = useCallback(async (date) => {
-    if (!user.uid) return;
+    if (!user?.uid) {
+      console.log('User not authenticated yet, skipping symptom fetch');
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -70,10 +80,11 @@ function SymptomTracker({ user }) {
       }
     } catch (err) {
       console.error('Error fetching symptoms:', err);
+      // Don't throw the error, just log it to prevent CORS issues
     } finally {
       setIsLoading(false);
     }
-  }, [user.uid, dynamicFields]);
+  }, [user?.uid, dynamicFields]);
 
   useEffect(() => {
     getEntryForDate(selectedDate);
